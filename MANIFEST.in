@@ -1,0 +1,2 @@
+recursive-include tutorkdmccormick/patches *
+recursive-include tutorkdmccormick/templates *
