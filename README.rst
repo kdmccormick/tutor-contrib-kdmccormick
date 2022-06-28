@@ -1,7 +1,7 @@
 Kyle's Tutor plugins
 ####################
 
-Various single-module Tutor plugins that I use in my daily setup.
+Various single-module `Tutor <https://docs.tutor.overhang.io>`_ plugins that I use in my daily setup.
 
 Some of these may be precursors to proper plugins;
 others may be prototypes of new core Tutor functionality that I plan to propose;
@@ -42,4 +42,4 @@ Roadmap: Propose as core Tutor feature.
 License
 *******
 
-This software is licensed under the terms of the AGPLv3.
+This software is licensed under the terms of the Apache License 2.0
