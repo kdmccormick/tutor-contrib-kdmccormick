@@ -1,5 +1,5 @@
-kdmccormick plugin for `Tutor <https://docs.tutor.overhang.io>`__
-===================================================================================
+Kyle's Tutor plugins
+====================
 
 Installation
 ------------
@@ -13,7 +13,7 @@ Usage
 
 ::
 
-    tutor plugins enable kdmccormick
+    tutor plugins enable automountvenvs
 
 
 License

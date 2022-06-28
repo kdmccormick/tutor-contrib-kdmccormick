@@ -42,7 +42,7 @@ setup(
     install_requires=["tutor"],
     entry_points={
         "tutor.plugin.v1": [
-            "kdmccormick = tutorkdmccormick.plugin"
+            "automountvenvs = tutorkdmccormick.automountvenvs"
         ]
     },
     classifiers=[
