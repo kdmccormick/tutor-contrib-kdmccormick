@@ -68,7 +68,7 @@ This plugin handles that, although the approach is kinda hacky.
     git checkout master     # Switching back to the latest stable Tutor version...
     tutor dev start -d    #   start a dev platform. Your Nightly platform is automatically stopped.
 
-Roadmap: Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite.
+Roadmap: Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
     
 License
 *******
