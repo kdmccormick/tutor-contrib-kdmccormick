@@ -39,6 +39,37 @@ Auto-mount folders prefixed with "venv-" as virtualenvs in various Tutor service
 
 Roadmap: Propose as core Tutor feature.
 
+stopnightly
+===========
+
+Automatically stop Tutor Nightly containers whenever starting (stable) Tutor containers, and vice versa.
+
+Running multiple instances of Tutor simultaneously one machine will cause a lot of errors than can be hard to diagnose until you realize what's going on. 
+In recognition of this, Tutor v13+ already automatically stops local your local platform when starting a dev platform, and vice versa. It doesn't, however, stop Nightly platforms when starting a stable platform (or vice versa).
+This plugin handles that, although the approach is kinda hacky.
+
+::
+
+    # setup (assumes you have Tutor installed from a local git repo)
+    cd < path to your tutor repo >
+    git checkout master
+    tutor plugins enable stopnightly
+    tutor config save
+    git checkout nightly
+    tutor plugins enable stopnightly
+    tutor config save
+
+    # example usage:
+    cd < path to your tutor repo >
+    git checkout master     # From the latest stable Tutor version...
+    tutor local start -d    #   start a local platform.
+    git checkout nightly    # From the latest Tutor Nightly version...
+    tutor local start -d    #   start a local platform. Your first platform is automatically stopped.
+    git checkout master     # Switching back to the latest stable Tutor version...
+    tutor dev start -d    #   start a dev platform. Your Nightly platform is automatically stopped.
+
+Roadmap: Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite.
+    
 License
 *******
 
