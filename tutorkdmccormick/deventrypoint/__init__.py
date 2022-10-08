@@ -78,12 +78,37 @@ cms-job:
     - {MOUNT_SPECIFIER} 
 """
 
+@hooks.Filters.COMPOSE_DEV_TMP.add()
+def _mount_script(docker_compose_tmp):
+    services = docker_compose_tmp.get("services", [])
+    for svc in ["lms", "cms", "lms-worker", "cms-worker"]:
+        service = services.get(svc, {})
+        service["volumes"] = service.get("volumes", []) + [MOUNT_SPECIFIER]
+        services[svc] = service
+    docker_compose_tmp["services"] = services
+    return docker_compose_tmp
+
+@hooks.Filters.COMPOSE_DEV_JOBS_TMP.add()
+def _mount_script_jobs(docker_compose_tmp):
+    services = docker_compose_tmp.get("services", [])
+    for svc in ["lms-job", "cms-job"]:
+        service = services.get(svc, {})
+        service["volumes"] = service.get("volumes", []) + [MOUNT_SPECIFIER]
+        services[svc] = service
+    docker_compose_tmp["services"] = services
+    return docker_compose_tmp
+
+    
 hooks.Filters.ENV_PATCHES.add_items(
     [
         (
             "openedx-dev-dockerfile-post-python-requirements",
             DOCKERFILE_PATCH_CONTENTS,
         ),
+    ]
+)
+_ = (
+    [
         (
             "local-docker-compose-dev-services",
             DOCKER_COMPOSE_PATCH_CONTENTS,
