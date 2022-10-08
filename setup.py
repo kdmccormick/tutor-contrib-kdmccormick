@@ -43,7 +43,8 @@ setup(
     entry_points={
         "tutor.plugin.v1": [
             "automountvenvs = tutorkdmccormick.automountvenvs",
-            "stopnightly = tutorkdmccormick.stopnightly"
+            "stopnightly = tutorkdmccormick.stopnightly",
+            "deventrypoint = tutorkdmccormick.deventrypoint",
         ]
     },
     classifiers=[

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# To be run from /openedx/edx-platform
+
+# Fail if variables undefined. Use rightmost return value in chained command.
+set -uo pipefail
+
+# Do we have a mounted repo with changed Python deps, NPM deps, or setup.py?
+# Inspect diff's exit code:
+#   0       -> no change
+#   nonzero -> yes change
+diff /openedx/dependency-cache/development.txt requirements/edx/development.txt
+python_deps_diff=$?
+diff /openedx/dependency-cache/package.json package.json && \
+    diff /openedx/dependency-cache/package-lock.json package-lock.json
+npm_deps_diff=$?
+diff /openedx/dependency-cache/setup.py
+setup_py_diff=$?
+
+# Now that we're done with diff, fail if subcommands return nonzero.
+set -e
+
+if [ "$python_deps_diff" -ne 0 ] ; then
+	echo "$0: python dependencies changed; reinstalling"
+	set -x
+	pip install -r requirements/edx/development.txt
+	set +x
+else
+	echo "$0: python dependencies unchanged; skipping pip install"
+fi
+
+if [ ! -d ./Open_edX.egg-info ] ; then
+	echo "$0: generating .egg-info"
+	set -x
+	pip install -e .
+	set +x
+elif [ "$setup_py_diff" -ne 0 ] ; then
+	echo "$0: setup.py changed; re-generating .egg-info"
+	set -x
+	pip install -e .
+	set +x
+else
+	echo "$0: setup.py unchanged; skipping .egg-info regeneration"
+fi
+
+if [ -n "$(ls /openedx/mounted-packages)" ] ; then
+	echo "$0: installing packages at /openedx/mounted-packages"
+	set -x
+	for PACKAGE in /openedx/mounted-packages/* ; do
+		pip install -e "$PACKAGE"
+	done
+	set +x
+else
+	echo "$0: no mounted packages at /openedx/mounted-packages to install"
+fi
+
+echo "$0: changing node_modules to be a link to saved /openedx/node_modules"
+if [ -d node_modules ] ; then
+	echo "$0: old node_modules is saved at node_modules.bak"
+	set -x
+	mv node_modules node_modules.bak
+	set +x
+fi
+set -x
+ln -s /openedx/node_modules node_modules
+set +x
+
+if [ "$npm_deps_diff" -ne 0 ] ; then
+	echo "$0: npm dependencies changed; reinstalling"
+	set -x
+	npm install
+	set +x
+else
+	echo "$0: npm dependencies unchanged; skipping npm install"
+fi
+
+if [ "$python_deps_diff" -ne 0 ] || [ "$npm_deps_diff" -ne 0 ] ; then
+	echo "$0: python and/or npm dependencies changed; re-building static assets"
+	set -x
+	openedx-assets build --env=dev
+	set +x
+else
+	echo "$0: both python and npm dependencies unchanged; skipping openedx-assets build"
+fi
+
+# Call script arguments as a command.
+"$@"
