@@ -44,7 +44,7 @@ setup(
         "tutor.plugin.v1": [
             "automountvenvs = tutorkdmccormick.automountvenvs",
             "stopnightly = tutorkdmccormick.stopnightly",
-            "deventrypoint = tutorkdmccormick.deventrypoint",
+            "quickdev = tutorkdmccormick.quickdev",
         ]
     },
     classifiers=[
