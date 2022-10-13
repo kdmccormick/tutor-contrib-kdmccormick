@@ -39,54 +39,51 @@ RUN mkdir /openedx/mounted-packages
 RUN mv node_modules /openedx/node_modules
 RUN ln -s /openedx/node_modules
 
+# Turn node_modules and the Python venv into named volumes so that:
+# (a) they can be written to faster in the event that the
+#     user wants to re-install requirements, since named volumes
+#     have better write performance than both container filesystems
+#     and bind-mounted volumes; and
+# (b) they can be shared between all lms* and cms* containers.
+VOLUME /openedx/node_modules
+VOLUME /openedx/venv
+
 # Stash dependency files so that we can compare them with edx-platform's
 # files later. If they are different, then edx-platform is mounted and
 # has altered dependencies, so dev-entrypoint will reinstall them.
-RUN mkdir /openedx/dependency-cache
-RUN cp package.json /openedx/dependency-cache
-RUN cp package-lock.json /openedx/dependency-cache
-RUN cp setup.py /openedx/dependency-cache
-RUN cp requirements/edx/development.txt /openedx/dependency-cache
+#RUN mkdir /openedx/dependency-cache
+#RUN cp package.json /openedx/dependency-cache
+#RUN cp package-lock.json /openedx/dependency-cache
+#RUN cp setup.py /openedx/dependency-cache
+#RUN cp requirements/edx/development.txt /openedx/dependency-cache
+
+# Put our plugin's scripts (will be mounted in docker-compose.yml) on the path.
+ENV PATH /openedx/deventrypoint/bin:${PATH}
 
 # Run all commands through the developer entrypoint, which
 # re-installs dependencies & re-compiles assets if appropriate.
-ENTRYPOINT [ "bash", "/openedx/deventrypoint/dev-entrypoint" ]
+#ENTRYPOINT [ "dev-entrypoint" ]
 
 ######## END DEV WORKFLOW EXPERIMENTATION #########
 """
 
-MOUNT_SPECIFIER = "../plugins/deventrypoint/mounts:/openedx/deventrypoint:ro"
-DOCKER_COMPOSE_PATCH_CONTENTS = f"""\
-lms:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-cms:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-lms-worker:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-cms-worker:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-"""
-DOCKER_COMPOSE_JOBS_PATCH_CONTENTS = f"""\
-lms-job:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-cms-job:
-  volumes:
-    - {MOUNT_SPECIFIER} 
-"""
+EXTRA_VOLUMES = {"openedx_node_modules": {}, "openedx_venv": {}}
+EXTRA_OPENEDX_SERVICE_VOLUMES = [
+    "openedx_node_modules:/openedx/node_modules",
+    "openedx_venv:/openedx/venv",
+    "../plugins/deventrypoint/bin:/openedx/deventrypoint/bin:ro",
+]
 
 @hooks.Filters.COMPOSE_DEV_TMP.add()
 def _mount_script(docker_compose_tmp):
     services = docker_compose_tmp.get("services", [])
     for svc in ["lms", "cms", "lms-worker", "cms-worker"]:
         service = services.get(svc, {})
-        service["volumes"] = service.get("volumes", []) + [MOUNT_SPECIFIER]
+        service["volumes"] = service.get("volumes", []) + EXTRA_OPENEDX_SERVICE_VOLUMES
         services[svc] = service
     docker_compose_tmp["services"] = services
+    volumes = docker_compose_tmp.get("volumes", {})
+    docker_compose_tmp["volumes"] = {**volumes, **EXTRA_VOLUMES}
     return docker_compose_tmp
 
 @hooks.Filters.COMPOSE_DEV_JOBS_TMP.add()
@@ -94,9 +91,11 @@ def _mount_script_jobs(docker_compose_tmp):
     services = docker_compose_tmp.get("services", [])
     for svc in ["lms-job", "cms-job"]:
         service = services.get(svc, {})
-        service["volumes"] = service.get("volumes", []) + [MOUNT_SPECIFIER]
+        service["volumes"] = service.get("volumes", []) + EXTRA_OPENEDX_SERVICE_VOLUMES
         services[svc] = service
     docker_compose_tmp["services"] = services
+    volumes = docker_compose_tmp.get("volumes", {})
+    docker_compose_tmp["volumes"] = {**volumes, **EXTRA_VOLUMES}
     return docker_compose_tmp
 
     
@@ -105,18 +104,6 @@ hooks.Filters.ENV_PATCHES.add_items(
         (
             "openedx-dev-dockerfile-post-python-requirements",
             DOCKERFILE_PATCH_CONTENTS,
-        ),
-    ]
-)
-_ = (
-    [
-        (
-            "local-docker-compose-dev-services",
-            DOCKER_COMPOSE_PATCH_CONTENTS,
-        ),
-        (
-            "dev-docker-compose-jobs-services",
-            DOCKER_COMPOSE_JOBS_PATCH_CONTENTS,
         ),
     ]
 )

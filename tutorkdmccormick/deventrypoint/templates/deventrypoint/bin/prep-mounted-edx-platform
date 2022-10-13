@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# To be run from /openedx/edx-platform
 
-# Fail if variables undefined. Use rightmost return value in chained command.
+# Strict mode, sans -e.
 set -uo pipefail
+
+cd /openedx/edx-platform
+
+# TODO: temporary early return
+exit 0
 
 # Do we have a mounted repo with changed Python deps, NPM deps, or setup.py?
 # Inspect diff's exit code:
@@ -26,20 +30,6 @@ if [ "$python_deps_diff" -ne 0 ] ; then
 	set +x
 else
 	echo "$0: python dependencies unchanged; skipping pip install"
-fi
-
-if [ ! -d ./Open_edX.egg-info ] ; then
-	echo "$0: generating .egg-info"
-	set -x
-	pip install -e .
-	set +x
-elif [ "$setup_py_diff" -ne 0 ] ; then
-	echo "$0: setup.py changed; re-generating .egg-info"
-	set -x
-	pip install -e .
-	set +x
-else
-	echo "$0: setup.py unchanged; skipping .egg-info regeneration"
 fi
 
 if [ -n "$(ls /openedx/mounted-packages)" ] ; then

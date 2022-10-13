@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Strict mode.
+set -euo pipefail
+
+cd /openedx/edx-platform
+
+echo "$0: generating .egg-info"
+set -x
+pip install -e .
+set +x
+
+if [ -n "$(ls /openedx/mounted-packages)" ] ; then
+	echo "$0: installing packages at /openedx/mounted-packages"
+	set -x
+	for PACKAGE in /openedx/mounted-packages/* ; do
+		pip install -e "$PACKAGE"
+	done
+	set +x
+else
+	echo "$0: no mounted packages at /openedx/mounted-packages to install"
+fi
+
+if [ -L node_modules ] ; then
+	echo "$0: node_modules is already a symbolic link"
+else
+	if [ -d node_modules ] ; then
+		echo "$0: saving old /openedx/edx-platform/node_modules to /openedx/edx-platform/node_modules.bak"
+		set -x
+		mv node_modules node_modules.bak
+		set +x
+	fi
+	echo "$0: linking /openedx/edx-platform/node_modules to /openedx/node_modules"
+	set -x
+	ln -s /openedx/node_modules node_modules
+	set +x
+fi
+
+# Call script arguments as a command.
+"$@"
