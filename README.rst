@@ -70,8 +70,8 @@ This plugin handles that, although the approach is kinda hacky.
 
 Roadmap: Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
     
-deventrypoint
-=============
+quickdev
+========
 
 Docs coming soon!
 
