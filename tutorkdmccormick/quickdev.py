@@ -136,11 +136,12 @@ VOLUME /openedx/mounted-packages
 #   contents of this directory from the image. This is extremely
 #   useful for us, because it means that the volumes by-default
 #   have the requirements that are built into the dev image!
-# * Yes, /openedx/edx-platform/node_modules will actually
-#   point at the named volume, *even if* a user bind-mounts
+# * Yes, /openedx/edx-platform/node_modules and /openedx/edx-platform/common/static
+#   will point at their named volumes, *even if* a user bind-mounts
 #   their own repository to /openedx/edx-platform!
-VOLUME /openedx/edx-platform/node_modules
 VOLUME /openedx/venv
+VOLUME /openedx/edx-platform/node_modules
+VOLUME /openedx/edx-platform/common/static
 
 ## END QUICKDEV PATCH
 """
@@ -155,12 +156,14 @@ hooks.Filters.ENV_PATCHES.add_items(
 )
 
 DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
-    "openedx_node_modules": {},  # Declare a shared volume for lms/cms node_modules.
     "openedx_venv": {},  # Declare a shared volume for lms/cms Python virtual environment.
+    "openedx_node_modules": {},  # Declare a shared volume for lms/cms node_modules.
+    "openedx_static": {},  # Declare a shared volume for compiled assets.
 }
 NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
-    "openedx_node_modules:/openedx/edx-platform/node_modules",  # Use shared node_modules volume.
     "openedx_venv:/openedx/venv",  # Use shared Python virtual environment.
+    "openedx_node_modules:/openedx/edx-platform/node_modules",  # Use shared node_modules volume.
+    "openedx_static:/openedx/edx-platform/common/static",  # Use shared compiled assets volume.
     "../plugins/quickdev/bin:/openedx/quickdev/bin:ro",  # Bind-mount this plugin's scripts at /openedx/quickdev/bin.
 ]
 
