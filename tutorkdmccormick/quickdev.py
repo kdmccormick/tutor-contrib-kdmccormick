@@ -83,10 +83,9 @@ def _mount_edx_platform_packages(
 #    tutor dev run -m path/to/edx-platform lms prepare-mounted-platform
 ##########################################################################
 
-# Render any templates within tutorkdmccormick/quickdev/templates/quickdev.
-# Render them directly to plugins/quickdev.
+# Render any templates within tutorkdmccormick/templates/quickdev to plugins/quickdev.
 hooks.Filters.ENV_TEMPLATE_ROOTS.add_item(
-    pkg_resources.resource_filename("tutorkdmccormick", "quickdev/templates")
+    pkg_resources.resource_filename("tutorkdmccormick", "templates")
 )
 hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
 
