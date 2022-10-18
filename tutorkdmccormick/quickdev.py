@@ -119,20 +119,27 @@ DOCKERFILE_PATCH_CONTENTS = """\
 # and installed from.
 VOLUME /openedx/mounted-packages
 
-# Move node_modules out of edx-platform so that it still
-# exists if edx-platform is mounted from host.
-RUN mv node_modules /openedx/node_modules
-RUN ln -s /openedx/node_modules
-
 # Turn node_modules and the Python venv into named volumes so that:
 # (a) they can be written to faster in the event that the
 #     user wants to re-install requirements, since named volumes
 #     have better write performance than both container filesystems
 #     and bind-mounted volumes; and
 # (b) they can be shared between all lms* and cms* containers.
-# Note that the original contents of these directories, as built
-# in previous steps, will be copied into the new volumes.
-VOLUME /openedx/node_modules
+#
+# Notes:
+# * These declarations are volume "placeholders".
+#   They are associated with actual named volumes via
+#   Tutor's docker-compose YAML files (which we patch below).
+# * When a container is started: if the assigned named
+#   volume exists, then it will be used; if not, a new
+#   volume will be created and pre-populated with the original
+#   contents of this directory from the image. This is extremely
+#   useful for us, because it means that the volumes by-default
+#   have the requirements that are built into the dev image!
+# * Yes, /openedx/edx-platform/node_modules will actually
+#   point at the named volume, *even if* a user bind-mounts
+#   their own repository to /openedx/edx-platform!
+VOLUME /openedx/edx-platform/node_modules
 VOLUME /openedx/venv
 
 ## END QUICKDEV PATCH
@@ -152,7 +159,7 @@ DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
     "openedx_venv": {},  # Declare a shared volume for lms/cms Python virtual environment.
 }
 NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
-    "openedx_node_modules:/openedx/node_modules",  # Use shared node_modules volume.
+    "openedx_node_modules:/openedx/edx-platform/node_modules",  # Use shared node_modules volume.
     "openedx_venv:/openedx/venv",  # Use shared Python virtual environment.
     "../plugins/quickdev/bin:/openedx/quickdev/bin:ro",  # Bind-mount this plugin's scripts at /openedx/quickdev/bin.
 ]
@@ -207,7 +214,8 @@ def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> 
 #
 #  tutor restore-dev-requirements
 #
-# For what it's worth: I think this is clunky. I would rather implement
+# For what it's worth: I think this is clunky and unreliable. I don't think
+# this should be introduced to the core. I would rather implement
 # idea 4b (below).
 ##########################################################################
 
@@ -222,7 +230,7 @@ def _delete_dev_requirement_volumes():
     """
     Delete the volumes holding the Python venv and the NPM modules for development mode.
 
-    TODO: I would love to find a less hacky way to implement this.
+    TODO: I would love to find a less hacky & more reliable way to implement this.
     """
     import tutor.__about__ as tutor_about
 
@@ -230,6 +238,9 @@ def _delete_dev_requirement_volumes():
     volume_names = [
         f"{compose_project}_{volume}" for volume, _ in DEV_REQUIREMENT_VOLUMES.items()
     ]
+    # Stop containers and remove them so that we can delete these volumes.
+    # TODO: This will fail if any `tutor dev run` containers are running
+    # because `tutor dev stop` doesn't kill those.
     subprocess.Popen(["tutor", "dev", "stop"]).wait()
     subprocess.Popen(["tutor", "dev", "dc", "rm", "-f"]).wait()
     subprocess.Popen(["docker", "volume", "rm", *volume_names]).wait()

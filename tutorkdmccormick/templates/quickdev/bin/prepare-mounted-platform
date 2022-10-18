@@ -40,21 +40,6 @@ set -x
 pip install -e .
 set +x
 
-if [ -L node_modules ] ; then
-	echo "$scriptname: node_modules is already a symbolic link"
-else
-	if [ -d node_modules ] ; then
-		echo "$scriptname: saving old edx-platform/node_modules to edx-platform/node_modules.bak"
-		set -x
-		mv node_modules node_modules.bak
-		set +x
-	fi
-	echo "$scriptname: linking edx-platform/node_modules -> /openedx/node_modules"
-	set -x
-	ln -s /openedx/node_modules node_modules
-	set +x
-fi
-
 if [ -n "$skip_assets" ] ; then
 	echo "$scriptname: skipping static assets build"
 else
