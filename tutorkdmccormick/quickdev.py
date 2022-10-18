@@ -119,11 +119,12 @@ DOCKERFILE_PATCH_CONTENTS = """\
 # and installed from.
 VOLUME /openedx/mounted-packages
 
-# Turn node_modules and the Python venv into named volumes so that:
+# Turn the Python venv, node_modules, static assets, and .egg-info
+# into named volumes so that:
 # (a) they can be written to faster in the event that the
-#     user wants to re-install requirements, since named volumes
-#     have better write performance than both container filesystems
-#     and bind-mounted volumes; and
+#     user wants to re-install requirements and/or rebuild assets,
+#     since named volumes have better write performance than both
+#     container filesystems and bind-mounted volumes; and
 # (b) they can be shared between all lms* and cms* containers.
 #
 # Notes:
@@ -136,12 +137,16 @@ VOLUME /openedx/mounted-packages
 #   contents of this directory from the image. This is extremely
 #   useful for us, because it means that the volumes by-default
 #   have the requirements that are built into the dev image!
-# * Yes, /openedx/edx-platform/node_modules and /openedx/edx-platform/common/static
+# * Yes, the volumes within /openedx/edx-platform/
 #   will point at their named volumes, *even if* a user bind-mounts
-#   their own repository to /openedx/edx-platform!
+#   their own repository to /openedx/edx-platform! The volumes
+#   just seem to be layered on top of one another so that in
+#   any given folder, the most specific volume "wins".
+#   TODO: I tested this on Linux; need to verify this behavior on macOS.
 VOLUME /openedx/venv
 VOLUME /openedx/edx-platform/node_modules
 VOLUME /openedx/edx-platform/common/static
+VOLUME /openedx/edx-platform/Open_edX.egg-info
 
 ## END QUICKDEV PATCH
 """
@@ -155,17 +160,28 @@ hooks.Filters.ENV_PATCHES.add_items(
     ]
 )
 
+# Declare these all as named volumes.
 DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
-    "openedx_venv": {},  # Declare a shared volume for lms/cms Python virtual environment.
-    "openedx_node_modules": {},  # Declare a shared volume for lms/cms node_modules.
-    "openedx_static": {},  # Declare a shared volume for compiled assets.
+    "openedx_venv": {},
+    "openedx_node_modules": {},
+    "openedx_static": {},
+    "openedx_egg_info": {},
 }
+
+# Associate the named volumes with their corresponding
+# container filesystem locations, as declared in the
+# Dockerfile patch above.
 NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
-    "openedx_venv:/openedx/venv",  # Use shared Python virtual environment.
-    "openedx_node_modules:/openedx/edx-platform/node_modules",  # Use shared node_modules volume.
-    "openedx_static:/openedx/edx-platform/common/static",  # Use shared compiled assets volume.
-    "../plugins/quickdev/bin:/openedx/quickdev/bin:ro",  # Bind-mount this plugin's scripts at /openedx/quickdev/bin.
+    "openedx_venv:/openedx/venv",
+    "openedx_node_modules:/openedx/edx-platform/node_modules",
+    "openedx_static:/openedx/edx-platform/common/static",
+    "openedx_egg_info:/openedx/edx-platform/Open_edX.egg-info",
 ]
+
+# Bind-mount this plugin's scripts at /openedx/quickdev/bin.
+NEW_SERVICE_VOLUME_MAPPINGS.append(
+    "../plugins/quickdev/bin:/openedx/quickdev/bin:ro",
+)
 
 
 @hooks.Filters.COMPOSE_DEV_TMP.add()
