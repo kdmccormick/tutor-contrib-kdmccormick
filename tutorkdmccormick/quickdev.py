@@ -119,8 +119,8 @@ DOCKERFILE_PATCH_CONTENTS = """\
 # and installed from.
 VOLUME /openedx/mounted-packages
 
-# Turn the Python venv, node_modules, static assets, and .egg-info
-# into named volumes so that:
+# Turn the Python venv, node_modules, .egg-info, and generated
+# static assets into named volumes so that:
 # (a) they can be written to faster in the event that the
 #     user wants to re-install requirements and/or rebuild assets,
 #     since named volumes have better write performance than both
@@ -143,6 +143,14 @@ VOLUME /openedx/mounted-packages
 #   just seem to be layered on top of one another so that in
 #   any given folder, the most specific volume "wins".
 #   TODO: I tested this on Linux; need to verify this behavior on macOS.
+# * These are all generated (that is, not git-managed) files,
+#   with the minor exception of /openedx/edx-platform/lms/static/css,
+#   which contains a git-managed 'vendor' folder. While it would be
+#   best to move 'vendor' out of the volume so that edx-platform developers
+#   can modify the folder and see their changes reflected, we are leaving
+#   this as a TODO for now, since that folder hasn't been touched
+#   in 7+ years and doesn't seem like something we should get hung
+#   up on right now.
 VOLUME /openedx/venv
 VOLUME /openedx/edx-platform/node_modules
 VOLUME /openedx/edx-platform/Open_edX.egg-info
@@ -151,6 +159,7 @@ VOLUME /openedx/edx-platform/common/static/common/css
 VOLUME /openedx/edx-platform/common/static/common/js/vendor
 VOLUME /openedx/edx-platform/common/static/xmodule
 VOLUME /openedx/edx-platform/lms/static/certificates/css
+VOLUME /openedx/edx-platform/lms/static/css
 VOLUME /openedx/edx-platform/cms/static/css
 
 ## END QUICKDEV PATCH
@@ -170,12 +179,13 @@ DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
     "openedx_venv": {},
     "openedx_node_modules": {},
     "openedx_egg_info": {},
-    "openedx_static_bundles": {},
-    "openedx_static_css": {},
-    "openedx_static_js_vendor": {},
-    "openedx_static_xmodule": {},
-    "openedx_static_certificates": {},
-    "openedx_static_css_cms": {},
+    "openedx_common_static_bundles": {},
+    "openedx_common_static_common_css": {},
+    "openedx_common_static_common_js_vendor": {},
+    "openedx_common_static_xmodule": {},
+    "openedx_lms_static_certificates_css": {},
+    "openedx_lms_static_css": {},
+    "openedx_cms_static_css": {},
 }
 
 # Associate the named volumes with their corresponding
@@ -185,12 +195,13 @@ NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
     "openedx_venv:/openedx/venv",
     "openedx_node_modules:/openedx/edx-platform/node_modules",
     "openedx_egg_info:/openedx/edx-platform/Open_edX.egg-info",
-    "openedx_static_bundles:/openedx/edx-platform/common/static/bundles",
-    "openedx_static_css:/openedx/edx-platform/common/static/common/css",
-    "openedx_static_js_vendor:/openedx/edx-platform/common/static/common/js/vendor",
-    "openedx_static_xmodule:/openedx/edx-platform/common/static/xmodule",
-    "openedx_static_certificates:/openedx/edx-platform/lms/static/certificates/css",
-    "openedx_static_css_cms:/openedx/edx-platform/cms/static/css",
+    "openedx_common_static_bundles:/openedx/edx-platform/common/static/bundles",
+    "openedx_common_static_common_css:/openedx/edx-platform/common/static/common/css",
+    "openedx_common_static_common_js_vendor:/openedx/edx-platform/common/static/common/js/vendor",
+    "openedx_common_static_xmodule:/openedx/edx-platform/common/static/xmodule",
+    "openedx_lms_static_certificates_css:/openedx/edx-platform/lms/static/certificates/css",
+    "openedx_lms_static_css:/openedx/edx-platform/lms/static/css",
+    "openedx_cms_static_css:/openedx/edx-platform/cms/static/css",
 ]
 
 # Bind-mount this plugin's scripts at /openedx/quickdev/bin.
