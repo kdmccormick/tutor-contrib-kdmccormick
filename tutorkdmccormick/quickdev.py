@@ -145,8 +145,13 @@ VOLUME /openedx/mounted-packages
 #   TODO: I tested this on Linux; need to verify this behavior on macOS.
 VOLUME /openedx/venv
 VOLUME /openedx/edx-platform/node_modules
-#VOLUME /openedx/edx-platform/common/static
 VOLUME /openedx/edx-platform/Open_edX.egg-info
+VOLUME /openedx/edx-platform/common/static/bundles
+VOLUME /openedx/edx-platform/common/static/common/css
+VOLUME /openedx/edx-platform/common/static/common/js/vendor
+VOLUME /openedx/edx-platform/common/static/xmodule
+VOLUME /openedx/edx-platform/lms/static/certificates/css
+VOLUME /openedx/edx-platform/cms/static/css
 
 ## END QUICKDEV PATCH
 """
@@ -164,8 +169,13 @@ hooks.Filters.ENV_PATCHES.add_items(
 DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
     "openedx_venv": {},
     "openedx_node_modules": {},
-    #"openedx_static": {},
     "openedx_egg_info": {},
+    "openedx_static_bundles": {},
+    "openedx_static_css": {},
+    "openedx_static_js_vendor": {},
+    "openedx_static_xmodule": {},
+    "openedx_static_certificates": {},
+    "openedx_static_css_cms": {},
 }
 
 # Associate the named volumes with their corresponding
@@ -174,8 +184,13 @@ DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
 NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
     "openedx_venv:/openedx/venv",
     "openedx_node_modules:/openedx/edx-platform/node_modules",
-    #"openedx_static:/openedx/edx-platform/common/static",
     "openedx_egg_info:/openedx/edx-platform/Open_edX.egg-info",
+    "openedx_static_bundles:/openedx/edx-platform/common/static/bundles",
+    "openedx_static_css:/openedx/edx-platform/common/static/common/css",
+    "openedx_static_js_vendor:/openedx/edx-platform/common/static/common/js/vendor",
+    "openedx_static_xmodule:/openedx/edx-platform/common/static/xmodule",
+    "openedx_static_certificates:/openedx/edx-platform/lms/static/certificates/css",
+    "openedx_static_css_cms:/openedx/edx-platform/cms/static/css",
 ]
 
 # Bind-mount this plugin's scripts at /openedx/quickdev/bin.
