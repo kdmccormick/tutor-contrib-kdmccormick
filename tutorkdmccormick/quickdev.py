@@ -145,7 +145,7 @@ VOLUME /openedx/mounted-packages
 #   TODO: I tested this on Linux; need to verify this behavior on macOS.
 VOLUME /openedx/venv
 VOLUME /openedx/edx-platform/node_modules
-VOLUME /openedx/edx-platform/common/static
+#VOLUME /openedx/edx-platform/common/static
 VOLUME /openedx/edx-platform/Open_edX.egg-info
 
 ## END QUICKDEV PATCH
@@ -164,7 +164,7 @@ hooks.Filters.ENV_PATCHES.add_items(
 DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
     "openedx_venv": {},
     "openedx_node_modules": {},
-    "openedx_static": {},
+    #"openedx_static": {},
     "openedx_egg_info": {},
 }
 
@@ -174,7 +174,7 @@ DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
 NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
     "openedx_venv:/openedx/venv",
     "openedx_node_modules:/openedx/edx-platform/node_modules",
-    "openedx_static:/openedx/edx-platform/common/static",
+    #"openedx_static:/openedx/edx-platform/common/static",
     "openedx_egg_info:/openedx/edx-platform/Open_edX.egg-info",
 ]
 
