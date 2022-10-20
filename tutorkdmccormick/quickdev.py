@@ -12,6 +12,19 @@ The improvements are described in more detail below:
   4a. ALLOW REQUIREMENT VOLUMES TO BE DELETED VIA COMMAND
   4b. DELETE REQUIREMENT VOLUMES ON IMAGE CHANGE
 """
+_TODO = """
+    * update comments
+    * move commands under quickdev:
+      * tutor qdev pip-install-mounted
+      * tutor qdev pip-restore
+      * tutor qdev npm-restore
+      * tutor qdev static-restore
+      * tutor qdev ....rest of dev commands
+    * figure out why mounted block demo didnt work
+    * delete mounted platform script
+    * test on a mac
+    * document the plugin
+"""
 import click
 import pkg_resources
 import subprocess
@@ -248,7 +261,6 @@ def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> 
             },
         },
     }
-    return compose_file
 
 
 ##########################################################################
@@ -264,25 +276,65 @@ def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> 
 # idea 4b (below).
 ##########################################################################
 
+@click.group()
+def quickdev():
+    """
+    TODO helptexts for this and for subcommands
+    """
+    pass
 
-@hooks.Filters.CLI_COMMANDS.add_item
-@click.command()
-def restore_dev_requirements():
-    _delete_dev_requirement_volumes()
+
+hooks.Filters.CLI_COMMANDS.add_item(quickdev)
+
+
+@quickdev.command()
+def pip_install_mounted():
+    subprocess.Popen(
+        [
+            "tutor",
+            "dev",
+            "exec",
+            "lms",
+            "bash",
+            "-c",
+            ("""\
+if [ -n "$(ls /openedx/mounted-packages)" ] ; then
+    for PKG in /openedx/mounted-packages/* ; do
+        pip install -e "/openedx/mounted-packages/$PKG"
+    done
+else
+    echo "/openedx/mounted-packages is empty; nothing to install!"
+fi
+"""\
+            ),
+        ]
+    ).wait()
+
+
+@quickdev.command()
+def pip_restore():
+    _delete_volumes(["openedx_venv", "openedx_egg_info"])
+
+
+@quickdev.command()
+def npm_restore():
+    _delete_volumes(["openedx_node_modules"])
 
 
 def _delete_dev_requirement_volumes():
+    _delete_volumes(DEV_REQUIREMENT_VOLUMES.items())
+
+
+def _delete_volumes(volume_names: t.List[str]):
     """
-    Delete the volumes holding the Python venv and the NPM modules for development mode.
+    Delete one or more volumes being used by `tutor dev`.
 
     TODO: I would love to find a less hacky & more reliable way to implement this.
     """
     import tutor.__about__ as tutor_about
 
     compose_project = tutor_about.__app__.replace("-", "_") + "_dev"
-    volume_names = [
-        f"{compose_project}_{volume}" for volume, _ in DEV_REQUIREMENT_VOLUMES.items()
-    ]
+    volume_names = [f"{compose_project}_{volume_name}" for volume_name in volume_names]
     # Stop containers and remove them so that we can delete these volumes.
     # TODO: This will fail if any `tutor dev run` containers are running
     # because `tutor dev stop` doesn't kill those.
@@ -311,4 +363,4 @@ def _delete_dev_requirement_volumes():
 # @hooks.Filters.IMAGE_PULLED.add()
 def _handle_image_change(image: str) -> None:
     if image == "openedx":
-        _delete_dev_requirement_volumes()
+        _delete_volumes(["openedx_venv", "openedx_node_modules", "openedx_egg_info"])
