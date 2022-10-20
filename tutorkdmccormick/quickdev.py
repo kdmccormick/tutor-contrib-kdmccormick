@@ -288,30 +288,6 @@ hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
 @quickdev.command()
-def pip_install_mounted():
-    subprocess.Popen(
-        [
-            "tutor",
-            "dev",
-            "exec",
-            "lms",
-            "bash",
-            "-c",
-            ("""\
-if [ -n "$(ls /openedx/mounted-packages)" ] ; then
-    for PKG in /openedx/mounted-packages/* ; do
-        pip install -e "/openedx/mounted-packages/$PKG"
-    done
-else
-    echo "/openedx/mounted-packages is empty; nothing to install!"
-fi
-"""\
-            ),
-        ]
-    ).wait()
-
-
-@quickdev.command()
 def pip_restore():
     _delete_volumes(["openedx_venv", "openedx_egg_info"])
 

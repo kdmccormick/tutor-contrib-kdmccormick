@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail  # Strict mode
+
+if [ -n "$(ls /openedx/mounted-packages)" ] ; then
+	echo "Installing packages from /openedx/mounted-packages..." >&2
+	set -x
+	for PACKAGE in /openedx/mounted-packages/* ; do
+		pip install -e "$PACKAGE"
+	done
+	set +x
+	echo "Done installing packages from /openedx/mounted-packages." >&2
+else
+	echo "Directory /openedx/mounted-packages is empty; nothing to install." >&2
+fi
+
