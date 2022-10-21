@@ -33,14 +33,15 @@ def _mount_edx_platform_packages(
     mounted packages using a script. No private.txt file necessary!
     For example:
    
-      tutor dev start -m ./xblock-drag-and-drop-v2
-      tutor quickdev pip-install-mounts
+      tutor quickdev pip-install-mounts  -m ./xblock-drag-and-drop-v2
+      tutor dev start                    -m ./xblock-drag-and-drop-v2
    
     Otherwise, the user needs to manually specify the location:
    
-      tutor dev run -m \
-        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock ...
-      tutor quickdev pip-install-mounts
+      tutor quickdev pip-install-mounts -m \
+        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
+      tutor dev start -m \
+        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
     """
     if name.startswith("xblock-") or name.startswith("platform-plugin-"):
         path = f"/openedx/mounted-packages/{name}"
