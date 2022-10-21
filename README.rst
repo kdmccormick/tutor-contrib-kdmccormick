@@ -14,16 +14,13 @@ Installation
 
     pip install git+https://github.com/kdmccormick/tutor-contrib-kdmccormick
 
-Plugins
-*******
-
-quickdev
-========
+Plugin: quickdev
+****************
 
 An alternative to `Tutor's Open edX development workflow <https://docs.tutor.overhang.io/dev.html>`_ that is hopefully simpler, quicker, and less bandwidth-intensive.
 
 Setup
------
+=====
 
 Run these once to enable the plugin::
 
@@ -40,7 +37,7 @@ Of course, as usual, if you haven't already launched (a.k.a. quickstarted), you'
   tutor dev launch
 
 Running Tutor with your copy of edx-platform
---------------------------------------------
+============================================
 
 Start the platform with your code mounted using ``-m/--mount``::
 
@@ -63,7 +60,7 @@ Finally, as always, you can stop the platform when you're done::
   tutor dev stop
 
 Installing packages and re-generating assets
---------------------------------------------
+============================================
 
 With ``quickdev``, your containers (whether mounted with edx-platform or not) come ready-to-use with updated reqiurements and static assets. However, if you have modified:
 
@@ -78,7 +75,7 @@ then you may want to re-generate these resources. You can do so using ``tutor de
 
 or re-install all Python requirements::
 
-  tutor dev run lms pip install -r requirements/edx/
+  tutor dev run lms pip install -r requirements/edx/development.txt
 
 or re-install all NPM requirements::
 
@@ -90,19 +87,27 @@ or re-generate all static assets::
 
 Finally, if you want to revert to the original version of any of these resources, as built into the ``openedx`` Docker image, ``quickdev`` provides utilities for that (note: these command will stop your containers)::
 
-  tutor quickdev pip-restore
-  tutor quickdev npm-restore
-  tutor quickdev static-restore
+  tutor quickdev pip-restore     # Revert back to Python packages from image.
+  tutor quickdev npm-restore     # Revert back to NPM packages from image.
+  tutor quickdev static-restore  # Revert bakc to generated static assets from image.
 
 XBlock and edx-platform plugin development
-------------------------------------------
+==========================================
 
-In some cases, you will have to develop features for packages that are pip-installed next to the edx-platform. This is easy with ``quickdev``.
+In some cases, you will have to develop features for packages that are pip-installed next to the edx-platform. In order to install a local copy of a package into edx-platform, first use ``quickdev pip-install-mounts``, with your package repository mounted::
 
-TODO.
+  tutor quickdev pip-install-mounts -m ../xblock-drag-and-drop-v2
 
-automountvenvs
-==============
+You should see a message saying *"Done installing packages from /openedx/mounted-packages."*. Now, start your platform, making sure to continue using ``-m`` to mount your package repository::
+
+  tutor dev start -m ../xblock-drag-and-drop-v2
+
+Alternatively, you can start your platform with *both* edx-platform and your package mounted simultaneously::
+
+  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2
+
+Plugin: automountvenvs
+**********************
 
 Auto-mount folders prefixed with "venv-" as virtualenvs in various Tutor services.
 
@@ -123,8 +128,8 @@ Auto-mount folders prefixed with "venv-" as virtualenvs in various Tutor service
 
 Roadmap: Retire this plugin in favor of ``quickdev``.
 
-stopnightly
-===========
+Plugin: stopnightly
+*******************
 
 Automatically stop Tutor Nightly containers whenever starting (stable) Tutor containers, and vice versa.
 
