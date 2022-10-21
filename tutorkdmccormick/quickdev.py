@@ -1,57 +1,20 @@
 """
 This plugin, which I'm calling "quickdev", is a proof-of-concept for
-a set of four improvements that I think will simplify and speed up
+a set of changes that I think will simplify and speed up
 the workflow for edx-platform developers using Tutor, particularly those
 that need to quickly run edx-platform with modified requirement pins and/or
 local package changes.
 
-The improvements are described in more detail below:
-  1.  AUTO-MOUNT PACKAGES TO A STANDARD LOCATION
-  2.  ADD A SCRIPT TO PREPARE A MOUNTED PLATFORM
-  3.  USE NAMED VOLUMES FOR REQUIREMENTS
-  4a. ALLOW REQUIREMENT VOLUMES TO BE DELETED VIA COMMAND
-  4b. DELETE REQUIREMENT VOLUMES ON IMAGE CHANGE
-"""
-_TODO = """
-    * update comments
-    * move commands under quickdev:
-      * tutor qdev pip-install-mounted
-      * tutor qdev pip-restore
-      * tutor qdev npm-restore
-      * tutor qdev static-restore
-      * tutor qdev ....rest of dev commands
-    * figure out why mounted block demo didnt work
-    * delete mounted platform script
-    * test on a mac
-    * document the plugin
+TODO:
+* Add docs to README.
+* Test using-a-pip-installed-mounted-pacakge workflow again.
+* Test on macOS.
 """
 import click
-import pkg_resources
 import subprocess
 import typing as t
 
 from tutor import hooks
-
-
-##########################################################################
-# 1. AUTO-MOUNT PACKAGES TO A STANDARD LOCATION
-#
-# We choose a standard location for mounting edx-platform packages
-# in development: /openedx/mounted-packages.
-# This allows us, in section (2) below, to automatically install all these
-# mounted packages using a script. No private.txt file necessary!
-#
-# If the package name begins with xblock-* or platform-plugin-*,
-# then we can mount it there automatically:
-#
-#   tutor dev run -m ./xblock-adventure ...
-#
-# Otherwise, the user needs to manually specify the location:
-#
-#   tutor dev run -m \
-#     lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock ...
-#
-##########################################################################
 
 
 @hooks.Filters.COMPOSE_MOUNTS.add()
@@ -59,8 +22,25 @@ def _mount_edx_platform_packages(
     volumes: t.List[t.Tuple[str, str]], name: str
 ) -> t.List[t.Tuple[str, str]]:
     """
-    When a folder named xblock-* or platform-plugin-* is mounted,
-    auto-mount it to lms* & cms* containers at /openedx/mounted-packages.
+    When a folder named xblock-* or platform-plugin-* is passed to --mount,
+    auto-bind-mount it to lms* & cms* containers at /openedx/mounted-packages.
+
+    (I chose xblock-* and platform-plugin-* because those are patterns I have seen.
+     There are probably other patterns we could introduce as well. Many edx-platform
+     packages are named "edx-*", but that seems too general of a pattern.)
+
+    This allows us, in section (2) below, to automatically install all these
+    mounted packages using a script. No private.txt file necessary!
+    For example:
+   
+      tutor dev start -m ./xblock-drag-and-drop-v2
+      tutor quickdev pip-install-mounts
+   
+    Otherwise, the user needs to manually specify the location:
+   
+      tutor dev run -m \
+        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock ...
+      tutor quickdev pip-install-mounts
     """
     if name.startswith("xblock-") or name.startswith("platform-plugin-"):
         path = f"/openedx/mounted-packages/{name}"
@@ -75,37 +55,9 @@ def _mount_edx_platform_packages(
     return volumes
 
 
-##########################################################################
-# 2. ADD A SCRIPT TO PREPARE A MOUNTED edx-platform
+# USE NAMED VOLUMES FOR REQUIREMENTS
 #
-# Currently, if a user mounts edx-platform, they must run several follow-up
-# commands in order for their code to run correctly:
-#   https://docs.tutor.overhang.io/dev.html#setting-up-a-development-environment-for-edx-platform
-#
-# And, if the user wants to install locally-modified edx-platform packages,
-# there are additional steps.
-#
-# We propose a script that would simplify this into one command:
-#
-#     tutor dev run -m path/to/edx-platform lms \
-#       bash /openedx/quickdev/bin/prepare-mounted-platform
-#
-# If this plugin were moved into core, then the script could be put at
-# /openedx/bin/prepare-mounted-platform and then run as simply:
-#
-#    tutor dev run -m path/to/edx-platform lms prepare-mounted-platform
-##########################################################################
-
-# Render any templates within tutorkdmccormick/templates/quickdev to plugins/quickdev.
-hooks.Filters.ENV_TEMPLATE_ROOTS.add_item(
-    pkg_resources.resource_filename("tutorkdmccormick", "templates")
-)
-hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
-
-
-##########################################################################
-# 3. USE NAMED VOLUMES FOR REQUIREMENTS
-#
+# Background:
 # A "named volume" is a type of Docker volume. It's similar to bind-mount
 # volumes, except that we cannot access its contents easily via the host
 # filesystem. The contents are stored in a Docker-internal fashion, and
@@ -116,23 +68,19 @@ hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
 # layered container filesystem significantly, and on macOS and Windows
 # they also outperform bind-mounts.
 #
-# We use named volumes here to store requirements because we want users
-# to be able to install modified requirements (both Python and NPM ones),
-# using `docker run`, such that the changes will be reflected in
-# containers. In the past I've tried doing this by bind-mounting
-# virtual environments into containers, but this is quite cumbersome
-# and, on macOS, quite slow. Named volumes seems to solve both these
-# problems.
+# Here, we use named volumes for three things:
+# * Python requirements (the virtualenv and the .egg-info file).
+# * NPM requirements (node_modules).
+# * Generated static assets (various edx-platform folders).
 #
-# (comments previously in dockerfile)
-#
-# Turn the Python venv, node_modules, .egg-info, and generated
-# static assets into named volumes so that:
-# (a) they can be written to faster in the event that the
-#     user wants to re-install requirements and/or rebuild assets,
-#     since named volumes have better write performance than both
-#     container filesystems and bind-mounted volumes; and
-# (b) they can be shared between all lms* and cms* containers.
+# This helps users because:
+# * Changes to requirements & assets can be persisted and shared between
+#   all lms* and cms* containers, _without_ having to
+#   either rebuild the image (which takes time) or manage
+#   mounted virtual environments (which is cumbersome and confusing).
+# * Writing to any of these volumes is faster than writing either
+#   directly to the container or to the bind-mounted edx-platform
+#   directory.
 #
 # Notes:
 # * These declarations are volume "placeholders".
@@ -149,7 +97,6 @@ hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
 #   their own repository to /openedx/edx-platform! The volumes
 #   just seem to be layered on top of one another so that in
 #   any given folder, the most specific volume "wins".
-#   TODO: I tested this on Linux; need to verify this behavior on macOS.
 # * These are all generated (that is, not git-managed) files,
 #   with the minor exception of /openedx/edx-platform/lms/static/css,
 #   which contains a git-managed 'vendor' folder. While it would be
@@ -158,19 +105,6 @@ hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
 #   this as a TODO for now, since that folder hasn't been touched
 #   in 7+ years and doesn't seem like something we should get hung
 #   up on right now.
-##########################################################################
-
-"""
-TODO: scripts?
-
-"../plugins/quickdev/bin:/openedx/quickdev/bin:ro"
-
-# Make a place for in-devlopment edx-platform packages to be mounted to
-# and installed from.
-VOLUME /openedx/mounted-packages
-"""
-
-
 PYTHON_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
     "openedx_venv": "/openedx/venv",
     "openedx_egg_info": "/openedx/edx-platform/Open_edX.egg-info",
@@ -179,11 +113,18 @@ NODE_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
     "openedx_node_modules": "/openedx/edx-platform/node_modules",
 }
 STATIC_ASSET_VOLUMES: t.Dict[str, str] = {
+    # Yeah, there are seven different edx-platform directories
+    # for generated static assets. Gross. It's be nice to
+    # work upstream to simplify this.
     "openedx_common_static_bundles": "/openedx/edx-platform/common/static/bundles",
     "openedx_common_static_common_css": "/openedx/edx-platform/common/static/common/css",
     "openedx_common_static_common_js_vendor": "/openedx/edx-platform/common/static/common/js/vendor",
     "openedx_common_static_xmodule": "/openedx/edx-platform/common/static/xmodule",
     "openedx_lms_static_certificates_css": "/openedx/edx-platform/lms/static/certificates/css",
+    # note: /openedx/edx-platform/lms/static/css/vendor is git-managed,
+    #       unlike all the other directories here. The folder hasn't changed
+    #       in git in 7+ years, so I'm not too concerned about the
+    #       fact that it's getting sucked into the named volume.
     "openedx_lms_static_css": "/openedx/edx-platform/lms/static/css",
     "openedx_cms_static_css": "/openedx/edx-platform/cms/static/css",
 }
@@ -193,21 +134,21 @@ ALL_NAMED_VOLUMES: t.Dict[str, str] = {
     **STATIC_ASSET_VOLUMES,
 }
 
-
+# Add volumes to 'development' stage of Dockerfile.
 DOCKERFILE_PATCH: str = "\n".join(
     [
         "##### BEGIN QUICKDEV PATCH #####",
-        "",
-        "# Mount point for auto-bind-mounted edx-platform packages",
-        "RUN mkdir -p /openedx/mounted-packages",
-        "",
-        "# Named volumes for Python & NPM requirements as well as generated",
-        "# static assets.",
+        "RUN mkdir -p /openedx/mounted-packages",  # For auto-bind-mounted platform packages.
         *[
+            # Declare each volume mount point.
+            # Docker will expect a volume to be associated with each of these
+            # via the docker-compose file.
+            # If the associated volume is empty, then upon startup, the
+            # volume will be populated with the original contents of the same
+            # directory from the image.
             f"VOLUME {container_path}"
             for _volume_name, container_path in ALL_NAMED_VOLUMES.items()
         ],
-        "",
         "#####  END QUICKDEV PATCH  #####",
     ]
 )
@@ -271,21 +212,7 @@ def _add_volumes_to_services(
     }
 
 
-##########################################################################
-# 4a. ALLOW REQUIREMENT VOLUMES TO BE DELETED VIA COMMAND
-#
-# Users will sometimes want to "restore" the requirements that are provided
-# by the openedx image. This command would allow them to do that:
-#
-#  tutor restore-dev-requirements
-#
-# For what it's worth: I think this is clunky and unreliable. I don't think
-# this should be introduced to the core. I would rather implement
-# idea 4b (below).
-##########################################################################
-
-
-@click.group(help="Extra 'dev' commands for working with named volumes")
+@click.group(help="Extra 'dev' commands for managing named volumes")
 def quickdev():
     pass
 
@@ -293,8 +220,9 @@ def quickdev():
 hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
-@quickdev.command(help="TODO...")
-def pip_install_mounted():
+@quickdev.command(help="Install all Python packages at /openedx/mounted-packages")
+@click.option("-m", "--mount", "mounts", multiple=True)
+def pip_install_mounts(mounts):
     script = """
 set -euo pipefail  # Strict mode
 
@@ -310,7 +238,18 @@ else
 	echo "Directory /openedx/mounted-packages is empty; nothing to install." >&2
 fi
 """
-    command = ["tutor", "dev", "exec", "lms", "bash", "-c", script]
+    # Forward mount options to Tutor, unprocessed.
+    mount_options = [f"--mount={mount}" for mount in mounts]
+    command = ["tutor", "dev", "run", *mount_options, "lms", "bash", "-c", script]
+
+    # This command could and should be reimplemented using the CLI_DO_COMMANDS
+    # system once that merges upstream, which would have the interface:
+    #
+    #    tutor dev do -m xblock-ABC -m platform-plugin-XYZ pip-install-mounts
+    #
+    # instead of:
+    #
+    #    tutor quickdev -m xblock-ABC -m platform-plugin-XYZ pip-install-mounts
     try:
         subprocess.check_call(command)
     except:
@@ -335,38 +274,47 @@ def static_restore():
 
 def _delete_volumes(volume_names: t.List[str]):
     """
-    Delete one or more volumes being used by `tutor dev`.
-
-    TODO: I would love to find a less hacky & more reliable way to implement this.
+    Stop containers & delete one or more named `tutor dev` volumes.
     """
     import tutor.__about__ as tutor_about
 
-    # TODO: This is a pretty gross way of figuring out the volumes names.
+    # Bring down all `tutor dev` containers so that we can delete volumes.
+    # We must use `down` instead of `stop`, because the latter doesn't bring
+    # down `tutor dev run` containers. Note that `down` also will prune all
+    # stopped containers for us.
+    subprocess.check_call(["tutor", "dev", "dc", "down"])
+
+    # I don't know of a way to delete specific volumes through docker-compose,
+    # so we must hackily build the volume names ourselves based on the compose
+    # project name.
     compose_project = tutor_about.__app__.replace("-", "_") + "_dev"
     volume_names = [f"{compose_project}_{volume_name}" for volume_name in volume_names]
-
-    subprocess.check_call(["tutor", "dev", "dc", "down"])
     subprocess.check_call(["docker", "volume", "rm", *volume_names])
 
-
-##########################################################################
-# 4b. DELETE REQUIREMENT VOLUMES ON IMAGE CHANGE
-#     (this doesn't work yet)
-#
-# The IMAGE_BUILT and IMAGE_PULLED actions do not exist in Tutor (yet),
-# but if they did, we could hook into them in order to smartly delete
-# the virtualenv and node_modules volumes. That way, users would be
-# less likely to accidentally use outdated requirements from the volumes
-# after they pulled/built a fresh image.
-#
-# I believe that this would cover almost all of the cases where users
-# would want to delete the requirements volumes, so if we could get
-# it working, then we could get rid of the command proposed
-# in idea 4a (above).
-##########################################################################
 
 # @hooks.Actions.IMAGE_BUILT.add()
 # @hooks.Filters.IMAGE_PULLED.add()
 def _handle_image_change(image: str) -> None:
+    """
+    HYPOTHETICAL: Delete requirement & asset volumes whenever image changes.
+
+    The IMAGE_BUILT and IMAGE_PULLED actions do not exist in Tutor (yet),
+    but if they did, we could hook into them in order to smartly delete
+    the named volumes holding our Python virtualenv, node_modules, and generated
+    static assets.
+
+    Why?
+
+    If we never delete these volumes, then users will need to remember
+    to regularly either (a) upate requirements and static assets, or (b) delete
+    the named volumes manually using the `*-restore` commands defined above.
+    Many users may find this cumbersome, since they already need to remember
+    to tutor-pull new images and git-pull edx-platform regularly.
+
+    So, we should delete the named volumes in an automatic yet also
+    predictable fashion. `tutor images pull/build opnedx` strikes me as a good
+    time to trigger the volume removal, since folks tend to run it when
+    they want a fresh, updated environment.
+    """
     if image == "openedx":
         _delete_volumes(ALL_NAMED_VOLUMES.keys())
