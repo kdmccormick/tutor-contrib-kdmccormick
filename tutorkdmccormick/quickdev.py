@@ -123,15 +123,9 @@ hooks.Filters.ENV_TEMPLATE_TARGETS.add_item(("quickdev", "plugins"))
 # virtual environments into containers, but this is quite cumbersome
 # and, on macOS, quite slow. Named volumes seems to solve both these
 # problems.
-##########################################################################
-
-DOCKERFILE_PATCH_CONTENTS = """\
-## BEGIN QUICKDEV PATCH
-
-# Make a place for in-devlopment edx-platform packages to be mounted to
-# and installed from.
-VOLUME /openedx/mounted-packages
-
+#
+# (comments previously in dockerfile)
+#
 # Turn the Python venv, node_modules, .egg-info, and generated
 # static assets into named volumes so that:
 # (a) they can be written to faster in the event that the
@@ -164,89 +158,100 @@ VOLUME /openedx/mounted-packages
 #   this as a TODO for now, since that folder hasn't been touched
 #   in 7+ years and doesn't seem like something we should get hung
 #   up on right now.
-VOLUME /openedx/venv
-VOLUME /openedx/edx-platform/node_modules
-VOLUME /openedx/edx-platform/Open_edX.egg-info
-VOLUME /openedx/edx-platform/common/static/bundles
-VOLUME /openedx/edx-platform/common/static/common/css
-VOLUME /openedx/edx-platform/common/static/common/js/vendor
-VOLUME /openedx/edx-platform/common/static/xmodule
-VOLUME /openedx/edx-platform/lms/static/certificates/css
-VOLUME /openedx/edx-platform/lms/static/css
-VOLUME /openedx/edx-platform/cms/static/css
+##########################################################################
 
-## END QUICKDEV PATCH
+"""
+TODO: scripts?
+
+"../plugins/quickdev/bin:/openedx/quickdev/bin:ro"
+
+# Make a place for in-devlopment edx-platform packages to be mounted to
+# and installed from.
+VOLUME /openedx/mounted-packages
 """
 
-hooks.Filters.ENV_PATCHES.add_items(
-    [
-        (
-            "openedx-dev-dockerfile-post-python-requirements",
-            DOCKERFILE_PATCH_CONTENTS,
-        ),
-    ]
-)
 
-# Declare these all as named volumes.
-DEV_REQUIREMENT_VOLUMES: t.Dict[str, dict] = {
-    "openedx_venv": {},
-    "openedx_node_modules": {},
-    "openedx_egg_info": {},
-    "openedx_common_static_bundles": {},
-    "openedx_common_static_common_css": {},
-    "openedx_common_static_common_js_vendor": {},
-    "openedx_common_static_xmodule": {},
-    "openedx_lms_static_certificates_css": {},
-    "openedx_lms_static_css": {},
-    "openedx_cms_static_css": {},
+PYTHON_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
+    "openedx_venv": "/openedx/venv",
+    "openedx_egg_info": "/openedx/edx-platform/Open_edX.egg-info",
+}
+NODE_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
+    "openedx_node_modules": "/openedx/edx-platform/node_modules",
+}
+STATIC_ASSET_VOLUMES: t.Dict[str, str] = {
+    "openedx_common_static_bundles": "/openedx/edx-platform/common/static/bundles",
+    "openedx_common_static_common_css": "/openedx/edx-platform/common/static/common/css",
+    "openedx_common_static_common_js_vendor": "/openedx/edx-platform/common/static/common/js/vendor",
+    "openedx_common_static_xmodule": "/openedx/edx-platform/common/static/xmodule",
+    "openedx_lms_static_certificates_css": "/openedx/edx-platform/lms/static/certificates/css",
+    "openedx_lms_static_css": "/openedx/edx-platform/lms/static/css",
+    "openedx_cms_static_css": "/openedx/edx-platform/cms/static/css",
+}
+ALL_NAMED_VOLUMES: t.Dict[str, str] = {
+    **PYTHON_REQUIREMENT_VOLUMES,
+    **NODE_REQUIREMENT_VOLUMES,
+    **STATIC_ASSET_VOLUMES,
 }
 
-# Associate the named volumes with their corresponding
-# container filesystem locations, as declared in the
-# Dockerfile patch above.
-NEW_SERVICE_VOLUME_MAPPINGS: t.List[str] = [
-    "openedx_venv:/openedx/venv",
-    "openedx_node_modules:/openedx/edx-platform/node_modules",
-    "openedx_egg_info:/openedx/edx-platform/Open_edX.egg-info",
-    "openedx_common_static_bundles:/openedx/edx-platform/common/static/bundles",
-    "openedx_common_static_common_css:/openedx/edx-platform/common/static/common/css",
-    "openedx_common_static_common_js_vendor:/openedx/edx-platform/common/static/common/js/vendor",
-    "openedx_common_static_xmodule:/openedx/edx-platform/common/static/xmodule",
-    "openedx_lms_static_certificates_css:/openedx/edx-platform/lms/static/certificates/css",
-    "openedx_lms_static_css:/openedx/edx-platform/lms/static/css",
-    "openedx_cms_static_css:/openedx/edx-platform/cms/static/css",
-]
 
-# Bind-mount this plugin's scripts at /openedx/quickdev/bin.
-NEW_SERVICE_VOLUME_MAPPINGS.append(
-    "../plugins/quickdev/bin:/openedx/quickdev/bin:ro",
+DOCKERFILE_PATCH: str = "\n".join(
+    [
+        "##### BEGIN QUICKDEV PATCH #####",
+        "",
+        "# Mount point for auto-bind-mounted edx-platform packages",
+        "RUN mkdir -p /openedx/mounted-packages",
+        "",
+        "# Named volumes for Python & NPM requirements as well as generated",
+        "# static assets.",
+        *[
+            f"VOLUME {container_path}"
+            for _volume_name, container_path in ALL_NAMED_VOLUMES.items()
+        ],
+        "",
+        "#####  END QUICKDEV PATCH  #####",
+    ]
+)
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "openedx-dev-dockerfile-post-python-requirements",
+        DOCKERFILE_PATCH,
+    ),
 )
 
 
 @hooks.Filters.COMPOSE_DEV_TMP.add()
 def _add_volumes_to_openedx_services(docker_compose_tmp: dict) -> dict:
     return _add_volumes_to_services(
-        docker_compose_tmp, ["lms", "cms", "lms-worker", "cms-worker"]
+        docker_compose_tmp,
+        ALL_NAMED_VOLUMES,
+        ["lms", "cms", "lms-worker", "cms-worker"],
     )
 
 
 @hooks.Filters.COMPOSE_DEV_JOBS_TMP.add()
 def _add_volumes_to_openedx_jobs_services(docker_compose_tmp: dict) -> dict:
-    return _add_volumes_to_services(docker_compose_tmp, ["lms-job", "cms-job"])
+    return _add_volumes_to_services(
+        docker_compose_tmp, ALL_NAMED_VOLUMES, ["lms-job", "cms-job"]
+    )
 
 
-def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> dict:
+def _add_volumes_to_services(
+    compose_file: dict, volumes: t.Dict[str, str], service_names: t.List[str]
+) -> dict:
     """
-    Given a compose file, return a new compose file where our new volumes
-    are declared and added to the specified services.
+    Add named volumes to certain services in a docker-compose file.
     """
     services = compose_file.get("services", {})
     return {
         **compose_file,
+        # Add declarations for named volumes.
+        # We map each volume name to '{}' to indicate that's a basic named volume.
         "volumes": {
             **compose_file.get("volumes", {}),
-            **DEV_REQUIREMENT_VOLUMES,
+            **{volume_name: {} for volume_name, _ in volumes.items()},
         },
+        # App volume->directory mappings for each named volume for service.
+        # Each mapping is a string in the form "$VOLUME_NAME:$CONTAINER_PATH".
         "services": {
             **compose_file.get("services", {}),
             **{
@@ -254,7 +259,10 @@ def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> 
                     **services.get(service_name, {}),
                     "volumes": [
                         *services.get(service_name, {}).get("volumes", []),
-                        *NEW_SERVICE_VOLUME_MAPPINGS,
+                        *[
+                            f"{volume_name}:{container_path}"
+                            for volume_name, container_path in volumes.items()
+                        ],
                     ],
                 }
                 for service_name in service_names
@@ -276,29 +284,53 @@ def _add_volumes_to_services(compose_file: dict, service_names: t.List[str]) -> 
 # idea 4b (below).
 ##########################################################################
 
-@click.group()
+
+@click.group(help="Extra 'dev' commands for working with named volumes")
 def quickdev():
-    """
-    TODO helptexts for this and for subcommands
-    """
     pass
 
 
 hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
-@quickdev.command()
+@quickdev.command(help="TODO...")
+def pip_install_mounted():
+    script = """
+set -euo pipefail  # Strict mode
+
+if [ -n "$(ls /openedx/mounted-packages)" ] ; then
+	echo "Installing packages from /openedx/mounted-packages..." >&2
+	set -x
+	for PACKAGE in /openedx/mounted-packages/* ; do
+		pip install -e "$PACKAGE"
+	done
+	set +x
+	echo "Done installing packages from /openedx/mounted-packages." >&2
+else
+	echo "Directory /openedx/mounted-packages is empty; nothing to install." >&2
+fi
+"""
+    command = ["tutor", "dev", "exec", "lms", "bash", "-c", script]
+    try:
+        subprocess.check_call(command)
+    except:
+        print("Hint: did you forget start LMS before running pip-install-mounted?")
+        raise
+
+
+@quickdev.command(help="Revert to original Python requirements from Docker image")
 def pip_restore():
-    _delete_volumes(["openedx_venv", "openedx_egg_info"])
+    _delete_volumes(PYTHON_REQUIREMENT_VOLUMES.keys())
 
 
-@quickdev.command()
+@quickdev.command(help="Revert to original Node packages from Docker image")
 def npm_restore():
-    _delete_volumes(["openedx_node_modules"])
+    _delete_volumes(NODE_REQUIREMENT_VOLUMES.keys())
 
 
-def _delete_dev_requirement_volumes():
-    _delete_volumes(DEV_REQUIREMENT_VOLUMES.items())
+@quickdev.command(help="Revert to original built assets from the Docker image")
+def static_restore():
+    _delete_volumes(STATIC_ASSET_VOLUMES.keys())
 
 
 def _delete_volumes(volume_names: t.List[str]):
@@ -309,14 +341,12 @@ def _delete_volumes(volume_names: t.List[str]):
     """
     import tutor.__about__ as tutor_about
 
+    # TODO: This is a pretty gross way of figuring out the volumes names.
     compose_project = tutor_about.__app__.replace("-", "_") + "_dev"
     volume_names = [f"{compose_project}_{volume_name}" for volume_name in volume_names]
-    # Stop containers and remove them so that we can delete these volumes.
-    # TODO: This will fail if any `tutor dev run` containers are running
-    # because `tutor dev stop` doesn't kill those.
-    subprocess.Popen(["tutor", "dev", "stop"]).wait()
-    subprocess.Popen(["tutor", "dev", "dc", "rm", "-f"]).wait()
-    subprocess.Popen(["docker", "volume", "rm", *volume_names]).wait()
+
+    subprocess.check_call(["tutor", "dev", "dc", "down"])
+    subprocess.check_call(["docker", "volume", "rm", *volume_names])
 
 
 ##########################################################################
@@ -339,4 +369,4 @@ def _delete_volumes(volume_names: t.List[str]):
 # @hooks.Filters.IMAGE_PULLED.add()
 def _handle_image_change(image: str) -> None:
     if image == "openedx":
-        _delete_volumes(["openedx_venv", "openedx_node_modules", "openedx_egg_info"])
+        _delete_volumes(ALL_NAMED_VOLUMES.keys())
