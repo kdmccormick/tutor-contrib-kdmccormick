@@ -128,17 +128,20 @@ That's it! Changes to your local package should be immediately manifested in the
 
 Going further, you can bind-mount multiple edx-platform packages, and even edx-platform itself, simultaneously. For example, if you were working on both ``xblock-drag-and-drop-v2`` and ``platform-plugin-notices``, *and* you wanted to run local edx-platform code as well, you might run::
 
-  tutor dev run -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices lms bash
+  tutor dev run -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices lms bash
   app@lms$ pip install -e /openedx/mounted-packages/xblock-drag-and-drop-v2
   app@lms$ pip install -e /openedx/mounted-packages/platform-plugin-notices
   app@lms$ openedx-assets build --env=dev
   app@lms$ exit
-  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
+  tutor dev start \
+      -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
 
 For convenience, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
 
-  tutor quickdev pip-install-mounted -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
-  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
+  tutor quickdev pip-install-mounted --build-static \
+      -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
+  tutor dev start \
+      -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
 
 Notes on package bind-mounting
 ------------------------------
