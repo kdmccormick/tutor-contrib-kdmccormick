@@ -17,7 +17,7 @@ Installation
 Plugin: quickdev
 ****************
 
-An alternative to `Tutor's Open edX development workflow <https://docs.tutor.overhang.io/dev.html>`_ that is hopefully simpler, quicker, and less bandwidth-intensive.
+This plugin provides an alternative to `Tutor's Open edX development workflow <https://docs.tutor.overhang.io/dev.html>`_ that is hopefully simpler, quicker, and less bandwidth-intensive.
 
 Setup
 =====
@@ -32,28 +32,34 @@ Every time you pull new images, you'll need to re-build the development image::
 
   tutor dev dc build lms
 
-Of course, as usual, if you haven't already launched (a.k.a. quickstarted), you'll need to do that::
+Of course, as usual, if you haven't already launched Tutor (a.k.a. quickstarted), you'll need to do that::
 
   tutor dev launch
 
 Running Tutor with your copy of edx-platform
 ============================================
 
-Start the platform with your code mounted using ``-m/--mount``::
+Developers often want to run Open edX using a modififed local copy of edx-platform. The quickdev plugin makes this easy. Just start the platform with your code bind-mounted using ``-m/--mount``::
 
   tutor dev start -m path/to/your/edx-platform
 
-That's it! As usual, you should be to load LMS a http://local.overhang.io:8000 and CMS at http://studio.local.overhang.io:8001. If you change your local edx-platform code, you should be able to see the changes reflected immediately. If you don't, you can always force-restart the containers::
+That's it! As usual, you should be able to load LMS at http://local.overhang.io:8000 and CMS at http://studio.local.overhang.io:8001. If you make changes to your local edx-platform code, the LMS and CMS dev servers should automatically restart and manifest your changes. If they don't, you can always force-restart the containers::
 
   tutor dev restart
 
-Running commands in containers works as usual. You can use ``exec`` a command in a container that are already running::
+Running commands in containers works as usual. You can ``exec`` a command in a container that is already running::
 
   tutor dev exec lms ./manage.py lms migrate
 
-or you can use ``run`` the command in its own container (remember: with ``run``, you need to specify ``-m/--mount`` again)::
+or you can ``run`` a command in its own container (remember: with ``run``, you need to specify ``-m/--mount`` again)::
 
   tutor dev run -m path/to/your/edx-platform lms ./manage.py migrate
+
+Remember: with ``run``, you are starting a new just container for your command, so you must specify ``-m/--mount`` again. With ``exec``, you are using one of the containers that you created earlier when you ran ``start``, so whichever ``-m/--mount`` options you specified then will still be in effect.
+
+If you want to change which directory or directories are bind-mounted, just run ``start`` again::
+
+  tutor dev start -m path/to/another/copy/of/edx-platform
 
 Finally, as always, you can stop the platform when you're done::
 
@@ -85,7 +91,7 @@ or re-generate all static assets::
 
   tutor dev run lms openedx-assets build --env=dev
 
-Finally, if you want to revert to the original version of any of these resources, as built into the ``openedx`` Docker image, ``quickdev`` provides utilities for that (note: these command will stop your containers)::
+Finally, if you want to revert to the original version of any of these resources, as built into the ``openedx`` Docker image, ``quickdev`` provides utilities for that (note: these commands will stop your containers)::
 
   tutor quickdev pip-restore     # Revert back to Python packages from image.
   tutor quickdev npm-restore     # Revert back to NPM packages from image.
@@ -94,17 +100,69 @@ Finally, if you want to revert to the original version of any of these resources
 XBlock and edx-platform plugin development
 ==========================================
 
-In some cases, you will have to develop features for packages that are pip-installed next to the edx-platform. In order to install a local copy of a package into edx-platform, first use ``quickdev pip-install-mounts``, with your package repository mounted::
+In some cases, you will have to develop features for packages that are pip-installed into edx-platform. In order to install a local copy of a package into edx-platform, simply ``pip install`` the package using editable mode (``-e``) into LMS or CMS while your repository is bind-mounted (``-m path/to/your/local/xblock-or-library``). For example::
 
-  tutor quickdev pip-install-mounts -m ../xblock-drag-and-drop-v2
+  tutor dev run -m ../xblock-drag-and-drop-v2 lms pip install -e /openedx/mounted-packages/xblock-drag-and-drop-v2
 
-You should see a message saying *"Done installing packages from /openedx/mounted-packages."*. Now, start your platform, making sure to continue using ``-m`` to mount your package repository::
+Tip: If Tutor failed with *"No mount for ..."*, then this will be slightly more complicated for you; see the `notes on bind-mounting`_.
+
+Next, for pacakges that add static assets to the platform, such as most XBlocks, you will then want to rebuild static assets using ``openedx-assets``::
+
+  tutor dev run -m ../xblock-drag-and-drop-v2 lms openedx-assets build --env=dev
+
+Notice that we continue bind-mounting our local repository with ``-m``; we will need to do this as long as our local package is installed. Now, finallly, start your platform::
 
   tutor dev start -m ../xblock-drag-and-drop-v2
 
-Alternatively, you can start your platform with *both* edx-platform and your package mounted simultaneously::
+That's it! Changes to your local package should be immediately manifested in the LMS and CMS. If they are not, manually restarting the platform (``tutor dev restart``) should do the trick. 
 
-  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2
+Going further, you can bind-mount multiple edx-platform packages, and even edx-platform itself, simultaneously. For example, if you were working on both ``xblock-drag-and-drop-v2`` and ``platform-plugin-coaching``, *and* you wanted to run local edx-platform code as well, you might run::
+
+  tutor dev run -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching lms bash
+  app@lms$ pip install -e /openedx/mounted-packages/xblock-drag-and-drop-v2
+  app@lms$ pip install -e /openedx/mounted-packages/platform-plugin-coaching
+  app@lms$ openedx-assets build --env=dev
+  app@lms$ exit
+  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
+
+For conveninece, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages and. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
+
+  tutor quickdev pip-install-mounted -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
+  tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
+
+_notes on bind-mounting::
+
+Notes on package bind-mounting
+------------------------------
+
+For convenience, quickdev will try to recognize when you mount edx-platform packages and automatically mount them in a helpful location. Specifically, if you provide ``-m/--mount`` with a directory named any of the following:
+
+* ``xblock-*``
+* ``platform-lib-*``
+* ``platform-plugin-*``
+
+then the directory will be automatically mounted in all LMS and CMS containers (including workers and job runners) under the path /openedx/mounted-packages. That is why we were able to execute ``pip install -e /openedx/mounted-package/xblock-drag-and-drop-v2`` in previous steps without ever specifying where xblock-drag-and-drop-v2 should be mounted.
+
+Now, you may have an edx-platform package that does not use the supported directory naming conveition. In that case, you have two options. Firstly, you could rename your package's directory so that it matches the naming convention. For example::
+
+  mv ../staff_graded-xblock ../xblock-staff-graded
+  tutor dev run -m ../xblock-staff-graded lms pip install -e /openedx/mounted-packages/xblock-staff-graded
+  ...
+
+Secondly, you could manually specify where and how your package directory should be mounted using the explicit form of ``-m/--mount``. For example::
+   
+  tutor dev run \
+    -m lms,cms,lms-worker,cms-worker,lms-job,cms-job:../staff_graded-xblock:/openedx/mounted-packages/staff_graded-xblock \
+    lms pip install -e /openedx/mounted-packages/staff_graded-xblock
+  ...
+
+For more details, see Tutor's official `documentation on bind-mounting <https://docs.tutor.overhang.io/dev.html#bind-mount-volumes-with-mount>`_.
+
+Roadmap
+=======
+
+I will propose to incorporate these changes upstream into Tutor via a TEP (Tutor Enhancement Proposal).
+
 
 Plugin: automountvenvs
 **********************
@@ -126,7 +184,11 @@ Auto-mount folders prefixed with "venv-" as virtualenvs in various Tutor service
         -m course-discovery \
         -m discovery,discovery-job:venv-discovery:/openedx/venv
 
-Roadmap: Retire this plugin in favor of ``quickdev``.
+
+Roadmap
+=======
+
+I am be retiring this plugin in favor of ``quickdev``, described above.
 
 Plugin: stopnightly
 *******************
@@ -157,7 +219,10 @@ This plugin handles that, although the approach is kinda hacky.
     git checkout master     # Switching back to the latest stable Tutor version...
     tutor dev start -d      #   start a dev platform. Your Nightly platform is automatically stopped.
 
-Roadmap: Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
+Roadmap
+=======
+
+Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
     
 
 License

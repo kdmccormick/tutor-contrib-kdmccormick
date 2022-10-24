@@ -5,10 +5,7 @@ the workflow for edx-platform developers using Tutor, particularly those
 that need to quickly run edx-platform with modified requirement pins and/or
 local package changes.
 
-TODO:
-* Add docs to README.
-* Test using-a-pip-installed-mounted-pacakge workflow again.
-* Test on macOS.
+See this repository's README.rst for a full description of this plugin.
 """
 import click
 import subprocess
@@ -222,23 +219,41 @@ hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
 @quickdev.command(help="Install all Python packages at /openedx/mounted-packages")
-@click.option("-m", "--mount", "mounts", multiple=True)
-def pip_install_mounts(mounts):
-    script = """
+@click.option(
+    "-m",
+    "--mount",
+    "mounts",
+    multiple=True,
+    metavar="MOUNT",
+    help="Bind-mount a folder; see 'tutor dev start --help' for details.",
+)
+@click.option(
+    "-s",
+    "--build-static",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Rebuild static assets after installing packages",
+)
+def pip_install_mounts(mounts: t.List[str], build_static: bool) -> None:
+    script = f"""
 set -euo pipefail  # Strict mode
 
-if [ -n "$(ls /openedx/mounted-packages)" ] ; then
-	echo "Installing packages from /openedx/mounted-packages..." >&2
-	set -x
-	for PACKAGE in /openedx/mounted-packages/* ; do
-		pip install -e "$PACKAGE"
-	done
-	set +x
-	echo "Done installing packages from /openedx/mounted-packages." >&2
-else
+if [ -z "$(ls /openedx/mounted-packages)" ] ; then
 	echo "Directory /openedx/mounted-packages is empty; nothing to install." >&2
+        exit 0
 fi
+
+echo "Installing packages from /openedx/mounted-packages..." >&2
+set -x
+for PACKAGE in /openedx/mounted-packages/* ; do
+        pip install -e "$PACKAGE"
+done
+set +x
+echo "Done installing packages from /openedx/mounted-packages." >&2
 """
+    if build_static:
+        script += "set -x\nopenedx-assets build --env=dev\n"
     # Forward mount options to Tutor, unprocessed.
     mount_options = [f"--mount={mount}" for mount in mounts]
     command = ["tutor", "dev", "run", *mount_options, "lms", "bash", "-c", script]
@@ -251,29 +266,25 @@ fi
     # instead of:
     #
     #    tutor quickdev -m xblock-ABC -m platform-plugin-XYZ pip-install-mounts
-    try:
-        subprocess.check_call(command)
-    except:
-        print("Hint: did you forget start LMS before running pip-install-mounted?")
-        raise
+    subprocess.check_call(command)
 
 
 @quickdev.command(help="Revert to original Python requirements from Docker image")
-def pip_restore():
+def pip_restore() -> None:
     _delete_volumes(PYTHON_REQUIREMENT_VOLUMES.keys())
 
 
 @quickdev.command(help="Revert to original Node packages from Docker image")
-def npm_restore():
+def npm_restore() -> None:
     _delete_volumes(NODE_REQUIREMENT_VOLUMES.keys())
 
 
 @quickdev.command(help="Revert to original built assets from the Docker image")
-def static_restore():
+def static_restore() -> None:
     _delete_volumes(STATIC_ASSET_VOLUMES.keys())
 
 
-def _delete_volumes(volume_names: t.List[str]):
+def _delete_volumes(volume_names: t.Iterable[str]) -> None:
     """
     Stop containers & delete one or more named `tutor dev` volumes.
     """
