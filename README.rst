@@ -19,6 +19,12 @@ Plugin: quickdev
 
 This plugin provides an alternative to `Tutor's Open edX development workflow <https://docs.tutor.overhang.io/dev.html>`_ that is hopefully simpler, quicker, and less bandwidth-intensive.
 
+* `Setup <#setup>`_
+* `Running Tutor with your copy of edx-platform <#running-tutor-with-your-copy-of-edx-platform>`_
+* `Installing packages and re-generating assets <#installing-packages-and-re-generating-assets>`_
+* `XBlock and edx-platform plugin development <#xblock-and-edx-platform-plugin-development>`_
+* `Roadmap <#roadmap>`_
+
 Setup
 =====
 
@@ -71,7 +77,7 @@ Installing packages and re-generating assets
 With ``quickdev``, your containers (whether mounted with edx-platform or not) come ready-to-use with updated requirements and static assets. However, if you have modified:
 
 * the Python requirements lists under edx-platform/requirements,
-* the NPM requirements lists in package-lock.json,
+* the NPM requirements list in package-lock.json,
 * the SCSS files in edx-platform, or
 * the assets of an installed XBlock,
 
@@ -104,7 +110,7 @@ In some cases, you will have to develop features for packages that are pip-insta
 
   tutor dev run -m ../xblock-drag-and-drop-v2 lms pip install -e /openedx/mounted-packages/xblock-drag-and-drop-v2
 
-Tip: If Tutor failed with *"No mount for ..."*, then this will be slightly more complicated for you; see the `notes on bind-mounting`_.
+Tip: If Tutor failed with *"No mount for ..."*, then this will be slightly more complicated for you; see the `notes on bind-mounting <#notes-on-package-bind-mounting>`_ below.
 
 Next, for packages that add static assets to the platform, such as most XBlocks, you will then want to rebuild static assets using ``openedx-assets``::
 
@@ -125,12 +131,10 @@ Going further, you can bind-mount multiple edx-platform packages, and even edx-p
   app@lms$ exit
   tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
 
-For convenience, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages and. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
+For convenience, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
 
   tutor quickdev pip-install-mounted -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
   tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
-
-_notes on bind-mounting::
 
 Notes on package bind-mounting
 ------------------------------
