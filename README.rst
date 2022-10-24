@@ -39,7 +39,7 @@ Of course, as usual, if you haven't already launched Tutor (a.k.a. quickstarted)
 Running Tutor with your copy of edx-platform
 ============================================
 
-Developers often want to run Open edX using a modififed local copy of edx-platform. The quickdev plugin makes this easy. Just start the platform with your code bind-mounted using ``-m/--mount``::
+Developers often want to run Open edX using a modified local copy of edx-platform. The quickdev plugin makes this easy. Just start the platform with your code bind-mounted using ``-m/--mount``::
 
   tutor dev start -m path/to/your/edx-platform
 
@@ -68,7 +68,7 @@ Finally, as always, you can stop the platform when you're done::
 Installing packages and re-generating assets
 ============================================
 
-With ``quickdev``, your containers (whether mounted with edx-platform or not) come ready-to-use with updated reqiurements and static assets. However, if you have modified:
+With ``quickdev``, your containers (whether mounted with edx-platform or not) come ready-to-use with updated requirements and static assets. However, if you have modified:
 
 * the Python requirements lists under edx-platform/requirements,
 * the NPM requirements lists in package-lock.json,
@@ -95,7 +95,7 @@ Finally, if you want to revert to the original version of any of these resources
 
   tutor quickdev pip-restore     # Revert back to Python packages from image.
   tutor quickdev npm-restore     # Revert back to NPM packages from image.
-  tutor quickdev static-restore  # Revert bakc to generated static assets from image.
+  tutor quickdev static-restore  # Revert back to generated static assets from image.
 
 XBlock and edx-platform plugin development
 ==========================================
@@ -106,11 +106,11 @@ In some cases, you will have to develop features for packages that are pip-insta
 
 Tip: If Tutor failed with *"No mount for ..."*, then this will be slightly more complicated for you; see the `notes on bind-mounting`_.
 
-Next, for pacakges that add static assets to the platform, such as most XBlocks, you will then want to rebuild static assets using ``openedx-assets``::
+Next, for packages that add static assets to the platform, such as most XBlocks, you will then want to rebuild static assets using ``openedx-assets``::
 
   tutor dev run -m ../xblock-drag-and-drop-v2 lms openedx-assets build --env=dev
 
-Notice that we continue bind-mounting our local repository with ``-m``; we will need to do this as long as our local package is installed. Now, finallly, start your platform::
+Notice that we continue bind-mounting our local repository with ``-m``; we will need to do this as long as our local package is installed. Now, finally, start your platform::
 
   tutor dev start -m ../xblock-drag-and-drop-v2
 
@@ -125,7 +125,7 @@ Going further, you can bind-mount multiple edx-platform packages, and even edx-p
   app@lms$ exit
   tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
 
-For conveninece, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages and. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
+For convenience, the quickdev plugin also provides the ``pip-install-mounted`` command, which installs all packages at /openedx/mounted-packages and. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
 
   tutor quickdev pip-install-mounted -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
   tutor dev start -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-coaching
@@ -143,7 +143,7 @@ For convenience, quickdev will try to recognize when you mount edx-platform pack
 
 then the directory will be automatically mounted in all LMS and CMS containers (including workers and job runners) under the path /openedx/mounted-packages. That is why we were able to execute ``pip install -e /openedx/mounted-package/xblock-drag-and-drop-v2`` in previous steps without ever specifying where xblock-drag-and-drop-v2 should be mounted.
 
-Now, you may have an edx-platform package that does not use the supported directory naming conveition. In that case, you have two options. Firstly, you could rename your package's directory so that it matches the naming convention. For example::
+Now, you may have an edx-platform package that does not use the supported directory naming convention. In that case, you have two options. Firstly, you could rename your package's directory so that it matches the naming convention. For example::
 
   mv ../staff_graded-xblock ../xblock-staff-graded
   tutor dev run -m ../xblock-staff-graded lms pip install -e /openedx/mounted-packages/xblock-staff-graded
