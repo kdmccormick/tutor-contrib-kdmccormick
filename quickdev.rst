@@ -51,13 +51,17 @@ Running commands in containers works as usual. You can ``exec`` a command in a c
 
 or you can ``run`` a command in its own container (remember: with ``run``, you need to specify ``-m/--mount`` again)::
 
-  tutor dev run -m path/to/your/edx-platform lms ./manage.py migrate
+  tutor dev run -m path/to/your/edx-platform lms ./manage.py lms migrate
 
 Remember: with ``run``, you are starting a new just container for your command, so you must specify ``-m/--mount`` again. With ``exec``, you are using one of the containers that you created earlier when you ran ``start``, so whichever ``-m/--mount`` options you specified then will still be in effect.
 
 If you want to change which directory or directories are bind-mounted, just run ``start`` again::
 
+  # Bind-mount a different copy of edx-platform:
   tutor dev start -m path/to/another/copy/of/edx-platform
+  
+  # Stop bind-mounting edx-platform (i.e., go back to using the code on the image):
+  tutor dev start
 
 Finally, as always, you can stop the platform when you're done::
 
@@ -98,7 +102,7 @@ Finally, if you want to revert to the original version of any of these resources
 XBlock and edx-platform plugin development
 ==========================================
 
-In some cases, you will have to develop features for packages that are pip-installed into edx-platform. In order to install a local copy of a package into edx-platform, simply ``pip install`` the package using editable mode (``-e``) into LMS or CMS while your repository is bind-mounted (``-m path/to/your/local/xblock-or-library``). For example::
+In some cases, you will have to develop features for packages that are pip-installed into edx-platform. In order to install a local copy of a package into edx-platform, simply ``pip install`` the package using editable mode (``-e``) from LMS or CMS while your package directory is bind-mounted at /openedx/mounted-packages (``-m path/to/your/local/xblock-or-library``). For example::
 
   tutor dev run -m ../xblock-drag-and-drop-v2 lms pip install -e /openedx/mounted-packages/xblock-drag-and-drop-v2
 
@@ -108,7 +112,7 @@ Next, for packages that add static assets to the platform, such as most XBlocks,
 
   tutor dev run -m ../xblock-drag-and-drop-v2 lms openedx-assets build --env=dev
 
-Notice that we continue bind-mounting our local repository with ``-m``; we will need to do this as long as our local package is installed. Now, finally, start your platform::
+Notice that we continue bind-mounting our local directory with ``-m``; we will need to do this as long as our local package is installed. Now, finally, start your platform::
 
   tutor dev start -m ../xblock-drag-and-drop-v2
 
