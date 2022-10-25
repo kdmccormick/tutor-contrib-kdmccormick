@@ -23,8 +23,9 @@ def _mount_edx_platform_packages(
     auto-bind-mount it to lms* & cms* containers at /openedx/mounted-packages.
 
     (I chose xblock-* and platform-plugin-* because those are patterns I have seen.
-     There are probably other patterns we could introduce as well. Many edx-platform
-     packages are named "edx-*", but that seems too general of a pattern.)
+     I also added platform-lib-* because it struck me as a sensible prefix for new
+     edx-platform libraries. There are probably other patterns we could introduce as well.
+     Many edx-platform packages are named "edx-*", but that seems too general of a pattern.)
 
     This allows us, in section (2) below, to automatically install all these
     mounted packages using a script. No private.txt file necessary!
@@ -40,7 +41,7 @@ def _mount_edx_platform_packages(
       tutor dev start -m \
         lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
     """
-    if name.startswith("xblock-") or name.startswith("platform-plugin-"):
+    if name.startswith("xblock-") or name.startswith("platform-plugin-") or name.startswith("platform-lib-"):
         path = f"/openedx/mounted-packages/{name}"
         volumes += [
             ("lms", path),
