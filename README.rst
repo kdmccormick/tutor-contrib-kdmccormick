@@ -43,7 +43,7 @@ Auto-mount folders prefixed with "venv-" as virtualenvs in various Tutor service
 Roadmap
 =======
 
-I am be retiring this plugin in favor of ``quickdev``, described above.
+I will be retiring this plugin in favor of ``quickdev``, described above.
 
 Plugin: stopnightly
 *******************
