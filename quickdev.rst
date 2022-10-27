@@ -5,6 +5,7 @@ This plugin provides an alternative to `Tutor's Open edX development workflow <h
 
 Documentation:
 
+* `Why? <#why>`_
 * `Setup <#setup>`_
 * `Running Tutor with your copy of edx-platform <#running-tutor-with-your-copy-of-edx-platform>`_
 * `Installing packages and re-generating assets <#installing-packages-and-re-generating-assets>`_
@@ -12,6 +13,23 @@ Documentation:
 * `Roadmap <#roadmap>`_
 
 If you are interested in the plugin's internal technical details, please see the code itself in `quickdev.py <./tutorkdmccormick/quickdev.py>`_. I've tried to make the implementation and its rationale as clear as possible.
+
+Why?
+====
+
+The current ``tutor dev`` workflow (`documented here <https://docs.tutor.overhang.io/dev.html>`_) is excellent, right up until the point where you start wanting to run Open edX using edx-platform or edx-platform packages from your host machine. (If you already understand this, you might skip right to the `Setup <#setup>`_ section.) At that point, you'll either need to `rebuild your openedx-dev image every time you make a change <https://docs.tutor.overhang.io/configuration.html#custom-open-edx-docker-image>`_, or you'll need to bind-mount edx-platform using ``-m/--mount``.
+
+Bind-mounting works great, except that when you mount edx-platform, it overshadows several important folders built into the container image:
+
+* edx-platform's NPM packages (``/openedx/edx-platform/node_modules``),
+* edx-platform's metadata/entrypoint bundle (``/openedx/edx-platform/Open_edX.egg-info``), and
+* edx-platform's static assets (various ``/openedx/edx-platform`` subdirectories).
+
+That is why you need to run `some costly additional setup commands <https://docs.tutor.overhang.io/dev.html#setting-up-a-development-environment-for-edx-platform>`_ in order to prepare your bind-mounted edx-platform repository for use with Tutor, which, frustatingly, generally just *re-downloads and re-generates what was already on the openedx-dev image*. Even worse, bind-mounted volumes (like your edx-platform repository) are subject to write performance penalties on macOS and Windows hosts, meaning that these steps can take a very long time for many Open edX developers.
+
+The quickdev plugin addresses this by turning all those "overshadowed" folders into `named Docker volumes <https://docs.docker.com/storage/volumes>`_, which are pre-populated with the contents from the image, and layered on top of edx-platform. That way, developers can ``start`` tutor with ``--mount=edx-platform``, and it Just Works (TM), no additional setup required. Of course, a developer can still re-run those setup steps (``npm install``, ``pip install ...``, and ``openedx-assets ...``), but they only need to do so *if they made a change that would warrant re-running those commands*, such as updating a requirements list or changing an SCSS file.
+
+Furthermore, the plugin makes a named Docker volume for all LMS/CMS dev containers' Python virtual environments, which means *changes to installed requirements or generated assets are shared between containers and saved between platform restarts*. For developers who wish to work on Python packages, this `provides an alternative <#xblock-and-edx-platform-plugin-development>`_ to the current `edx-platform package development workflow <https://docs.tutor.overhang.io/dev.html#xblock-and-edx-platform-plugin-development>`_. It also removes the need for developers to ever worry about the complexities of copy or bind-mounting virtual environments into Tutor containers, as the LMS/CMS dev containers will all share one more-efficiently-mounted virtual environment.
 
 Setup
 =====
