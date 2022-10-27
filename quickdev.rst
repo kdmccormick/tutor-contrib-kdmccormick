@@ -57,7 +57,7 @@ Notes for this guide
 
 This guide assumes that you haved cloned edx-platform (and, optionally, edx-platform packages) to be siblings of your working directory. Your directories do not have to be organized that way, but if they're not, make sure to adjust the paths in the commands below accordingly.
 
-This plugin has only been tested with the latest version of `Tutor Nightly <https://docs.tutor.overhang.io/tutorials/nightly.html>`_.
+This plugin has been tested with the latest version of `Tutor Nightly <https://docs.tutor.overhang.io/tutorials/nightly.html>`_, on both Ubuntu 20.04 (AMD64) and macOS Ventura (ARM64).
 
 
 Running Tutor with your copy of edx-platform
