@@ -17,7 +17,7 @@ If you are interested in the plugin's internal technical details, please see the
 Why?
 ====
 
-The current ``tutor dev`` workflow (`documented here <https://docs.tutor.overhang.io/dev.html>`_) is excellent, right up until the point where you start wanting to run Open edX using edx-platform or edx-platform packages from your host machine. (If you already understand this, you might skip right to the `Setup <#setup>`_ section.) At that point, you'll either need to `rebuild your openedx-dev image every time you make a change <https://docs.tutor.overhang.io/configuration.html#custom-open-edx-docker-image>`_, or you'll need to bind-mount edx-platform using ``-m/--mount``.
+The current ``tutor dev`` workflow (`documented here <https://docs.tutor.overhang.io/dev.html>`_) is excellent, right up until the point where you want to run the platform with code from your host machine (if you're already sold on this, you could skip right to the `Setup <#setup>`_ section). At that point, you'll either need to `rebuild your openedx-dev image every time you make a change <https://docs.tutor.overhang.io/configuration.html#custom-open-edx-docker-image>`_, or you'll need to bind-mount edx-platform using ``-m/--mount``.
 
 Bind-mounting works great, except that when you mount edx-platform, it overshadows several important folders built into the container image:
 
@@ -192,5 +192,5 @@ Roadmap
 
 This plugin is maintained by me, `Kyle McCormick (@kdmccormick) <https://github.com/kdmccormick>`_, as part of my job at `the Center for Reimagining Learning (tCRIL) <https://openedx.atlassian.net/wiki/spaces/COMM/pages/3241640370/tCRIL+Engineering+Team>`_. If you have feedback or need help with it, I am happy to hear from you. Just mention ``@kdmccormick`` on the `Open edX forums <https://discuss.openedx.org>`_ and I'll get back to you as soon as I can.
 
-I've written a TEP (Tutor Enhancement Proposal) to incorporate these changes upstream. I am not planning on maintaining this plugin in the long term, because I would rather these features be part of Tutor itself.
+I've written a `TEP (Tutor Enhancement Proposal) to incorporate these changes upstream <https://discuss.openedx.org/t/tutor-enhancement-proposal-tep-for-a-quicker-development-workflow/8595>`_. I am not planning on maintaining this plugin in the long term, because I would rather these features be part of Tutor itself.
 
