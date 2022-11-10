@@ -154,10 +154,11 @@ Going further, you can bind-mount multiple edx-platform packages, and even edx-p
   tutor dev start \
       -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
 
-For convenience, the quickdev plugin also provides the ``pip-install-mounts`` command, which installs all packages at /openedx/mounted-packages. When provided the ``-s/--build-static`` flag, the command will also rebuild static assets. For example, the commands above could be shortened to::
+For convenience, the quickdev plugin also provides the ``do pip-install-mounts`` job, which installs all packages at /openedx/mounted-packages. When provided the ``-s/--build-static`` flag, the job will also rebuild static assets. For example, the commands above could be shortened to::
 
-  tutor quickdev pip-install-mounts --build-static \
-      -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
+  tutor dev do \
+      -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices \
+      pip-install-mounts -s
   tutor dev start \
       -m ../edx-platform -m ../xblock-drag-and-drop-v2 -m ../platform-plugin-notices
 
