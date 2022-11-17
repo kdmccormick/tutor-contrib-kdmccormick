@@ -78,7 +78,19 @@ Roadmap
 =======
 
 Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
+
+Plugin: configdiff
+******************
+
+An experimental way to check how ``tutor config save`` will modify your Tutor environment. Usage is simply::
+
+  tutor plugins enable configdiff
+  # ...
+  # make some changes to your config.yml
+  # ...
+  tutor configdiff
     
+It doesn't fully work. I'll either improve this or remove it.
 
 License
 *******
