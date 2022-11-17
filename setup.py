@@ -45,6 +45,7 @@ setup(
             "automountvenvs = tutorkdmccormick.automountvenvs",
             "stopnightly = tutorkdmccormick.stopnightly",
             "quickdev = tutorkdmccormick.quickdev",
+            "configdiff = tutorkdmccormick.configdiff",
         ]
     },
     classifiers=[

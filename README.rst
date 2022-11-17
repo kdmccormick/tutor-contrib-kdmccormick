@@ -78,6 +78,11 @@ Roadmap
 =======
 
 Propose as core Tutor feature, if and only if I can find a less hacky way to implement it. May require expansion of the V1 plugin API as a prerequisite. Related to a `Tutor DevEnv project issue <https://github.com/overhangio/2u-tutor-adoption/issues/74>`_.
+
+Plugin: configdiff
+******************
+
+A work-in-progress way to check how ``tutor config save`` will modify your Tutor environment. Docs coming soon.
     
 
 License
