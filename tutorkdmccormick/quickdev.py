@@ -31,15 +31,16 @@ def _mount_edx_platform_packages(
     mounted packages using a script. No private.txt file necessary!
     For example:
    
-      tutor quickdev pip-install-mounts  -m ./xblock-drag-and-drop-v2
-      tutor dev start                    -m ./xblock-drag-and-drop-v2
+      tutor dev do    -m ./xblock-drag-and-drop-v2 pip-install-mounts
+      tutor dev start -m ./xblock-drag-and-drop-v2
    
     Otherwise, the user needs to manually specify the location:
    
-      tutor quickdev pip-install-mounts -m \
-        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
-      tutor dev start -m \
-        lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
+      tutor dev do \
+        -m lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock \
+        pip-install-mounts
+      tutor dev start \
+        -m lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
     """
     if name.startswith("xblock-") or name.startswith("platform-plugin-") or name.startswith("platform-lib-"):
         path = f"/openedx/mounted-packages/{name}"
@@ -211,23 +212,9 @@ def _add_volumes_to_services(
     }
 
 
-@click.group(help="Extra 'dev' commands for managing named volumes")
-def quickdev():
-    pass
 
 
-hooks.Filters.CLI_COMMANDS.add_item(quickdev)
-
-
-@quickdev.command(help="Install all Python packages at /openedx/mounted-packages")
-@click.option(
-    "-m",
-    "--mount",
-    "mounts",
-    multiple=True,
-    metavar="MOUNT",
-    help="Bind-mount a folder; see 'tutor dev start --help' for details.",
-)
+@click.command(help="Install all from /openedx/mounted-packages")
 @click.option(
     "-s",
     "--build-static",
@@ -236,11 +223,11 @@ hooks.Filters.CLI_COMMANDS.add_item(quickdev)
     show_default=True,
     help="Rebuild static assets after installing packages",
 )
-def pip_install_mounts(mounts: t.List[str], build_static: bool) -> None:
-    script = f"""
-set -euo pipefail  # Strict mode
+def pip_install_mounts(build_static: bool) -> t.List[t.Tuple[str, str]]:
+    script = """
+set -eu  # Stricter mode
 
-if [ -z "$(ls /openedx/mounted-packages)" ] ; then
+if [ -z "$(ls /openedx/mounted-packages 2>/dev/null)" ] ; then
 	echo "Directory /openedx/mounted-packages is empty; nothing to install." >&2
         exit 0
 fi
@@ -255,19 +242,18 @@ echo "Done installing packages from /openedx/mounted-packages." >&2
 """
     if build_static:
         script += "set -x\nopenedx-assets build --env=dev\n"
-    # Forward mount options to Tutor, unprocessed.
-    mount_options = [f"--mount={mount}" for mount in mounts]
-    command = ["tutor", "dev", "run", *mount_options, "lms", "bash", "-c", script]
+    return [("lms", script)]
 
-    # This command could and should be reimplemented using the CLI_DO_COMMANDS
-    # system once that merges upstream, which would have the interface:
-    #
-    #    tutor dev do -m xblock-ABC -m platform-plugin-XYZ pip-install-mounts
-    #
-    # instead of:
-    #
-    #    tutor quickdev -m xblock-ABC -m platform-plugin-XYZ pip-install-mounts
-    subprocess.check_call(command)
+
+hooks.Filters.CLI_DO_COMMANDS.add_item(pip_install_mounts)
+
+
+@click.group(help="Extra 'dev' commands for managing named volumes")
+def quickdev():
+    pass
+
+
+hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
 @quickdev.command(help="Revert to original Python requirements from Docker image")
@@ -284,6 +270,23 @@ def npm_restore() -> None:
 def static_restore() -> None:
     _delete_volumes(STATIC_ASSET_VOLUMES.keys())
 
+
+@quickdev.command(
+    name="pip-install-mounts",
+    help="Deprecated - use 'tutor dev do pip-install-mounts'",
+    context_settings=dict(ignore_unknown_options=True, allow_extra_args=True)
+)
+def _pip_install_mounts_old() -> None:
+    raise click.ClickException("""\
+'tutor quickdev pip-install-mounts -m/--mount ...' is deprecated.
+
+Instead, use the equivalent do-job, like this:
+
+  tutor dev do --mount=/some/package --mount=/another/package pip-install-mounts
+
+or this:
+
+  tutor dev do -m /some/package -m /another/package pip-install-mounts""")
 
 def _delete_volumes(volume_names: t.Iterable[str]) -> None:
     """
