@@ -7,17 +7,19 @@ local package changes.
 
 See this repository's README.rst for a full description of this plugin.
 """
-import click
+from __future__ import annotations
+
 import subprocess
 import typing as t
 
+import click
 from tutor import hooks
 
 
 @hooks.Filters.COMPOSE_MOUNTS.add()
 def _mount_edx_platform_packages(
-    volumes: t.List[t.Tuple[str, str]], name: str
-) -> t.List[t.Tuple[str, str]]:
+    volumes: list[tuple[str, str]], name: str
+) -> list[tuple[str, str]]:
     """
     When a folder named xblock-* or platform-plugin-* is passed to --mount,
     auto-bind-mount it to lms* & cms* containers at /openedx/mounted-packages.
@@ -30,19 +32,23 @@ def _mount_edx_platform_packages(
     This allows us, in section (2) below, to automatically install all these
     mounted packages using a script. No private.txt file necessary!
     For example:
-   
+
       tutor dev do    -m ./xblock-drag-and-drop-v2 pip-install-mounts
       tutor dev start -m ./xblock-drag-and-drop-v2
-   
+
     Otherwise, the user needs to manually specify the location:
-   
+
       tutor dev do \
         -m lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock \
         pip-install-mounts
       tutor dev start \
         -m lms,...:./schoolyourself-xblock:/openedx/mounted-packages/schoolyourself-xblock
     """
-    if name.startswith("xblock-") or name.startswith("platform-plugin-") or name.startswith("platform-lib-"):
+    if (
+        name.startswith("xblock-")
+        or name.startswith("platform-plugin-")
+        or name.startswith("platform-lib-")
+    ):
         path = f"/openedx/mounted-packages/{name}"
         volumes += [
             ("lms", path),
@@ -105,20 +111,22 @@ def _mount_edx_platform_packages(
 #   this as a TODO for now, since that folder hasn't been touched
 #   in 7+ years and doesn't seem like something we should get hung
 #   up on right now.
-PYTHON_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
+PYTHON_REQUIREMENT_VOLUMES: dict[str, str] = {
     "openedx_venv": "/openedx/venv",
     "openedx_egg_info": "/openedx/edx-platform/Open_edX.egg-info",
 }
-NODE_REQUIREMENT_VOLUMES: t.Dict[str, str] = {
+NODE_REQUIREMENT_VOLUMES: dict[str, str] = {
     "openedx_node_modules": "/openedx/edx-platform/node_modules",
 }
-STATIC_ASSET_VOLUMES: t.Dict[str, str] = {
+STATIC_ASSET_VOLUMES: dict[str, str] = {
     # Yeah, there are seven different edx-platform directories
     # for generated static assets. Gross. It's be nice to
     # work upstream to simplify this.
     "openedx_common_static_bundles": "/openedx/edx-platform/common/static/bundles",
     "openedx_common_static_common_css": "/openedx/edx-platform/common/static/common/css",
-    "openedx_common_static_common_js_vendor": "/openedx/edx-platform/common/static/common/js/vendor",
+    "openedx_common_static_common_js_vendor": (
+        "/openedx/edx-platform/common/static/common/js/vendor"
+    ),
     "openedx_common_static_xmodule": "/openedx/edx-platform/common/static/xmodule",
     "openedx_lms_static_certificates_css": "/openedx/edx-platform/lms/static/certificates/css",
     # note: /openedx/edx-platform/lms/static/css/vendor is git-managed,
@@ -128,7 +136,7 @@ STATIC_ASSET_VOLUMES: t.Dict[str, str] = {
     "openedx_lms_static_css": "/openedx/edx-platform/lms/static/css",
     "openedx_cms_static_css": "/openedx/edx-platform/cms/static/css",
 }
-ALL_NAMED_VOLUMES: t.Dict[str, str] = {
+ALL_NAMED_VOLUMES: dict[str, str] = {
     **PYTHON_REQUIREMENT_VOLUMES,
     **NODE_REQUIREMENT_VOLUMES,
     **STATIC_ASSET_VOLUMES,
@@ -177,7 +185,7 @@ def _add_volumes_to_openedx_jobs_services(docker_compose_tmp: dict) -> dict:
 
 
 def _add_volumes_to_services(
-    compose_file: dict, volumes: t.Dict[str, str], service_names: t.List[str]
+    compose_file: dict, volumes: dict[str, str], service_names: list[str]
 ) -> dict:
     """
     Add named volumes to certain services in a docker-compose file.
@@ -212,9 +220,7 @@ def _add_volumes_to_services(
     }
 
 
-
-
-@click.command(help="Install all from /openedx/mounted-packages")
+@click.command()
 @click.option(
     "-s",
     "--build-static",
@@ -223,7 +229,10 @@ def _add_volumes_to_services(
     show_default=True,
     help="Rebuild static assets after installing packages",
 )
-def pip_install_mounts(build_static: bool) -> t.List[t.Tuple[str, str]]:
+def pip_install_mounts(build_static: bool) -> list[tuple[str, str]]:
+    """
+    Install all from /openedx/mounted-packages.
+    """
     script = """
 set -eu  # Stricter mode
 
@@ -248,36 +257,50 @@ echo "Done installing packages from /openedx/mounted-packages." >&2
 hooks.Filters.CLI_DO_COMMANDS.add_item(pip_install_mounts)
 
 
-@click.group(help="Extra 'dev' commands for managing named volumes")
+@click.group()
 def quickdev():
-    pass
+    """
+    Extra 'dev' commands for managing named volumes
+    """
 
 
 hooks.Filters.CLI_COMMANDS.add_item(quickdev)
 
 
-@quickdev.command(help="Revert to original Python requirements from Docker image")
+@quickdev.command()
 def pip_restore() -> None:
+    """
+    Revert to original Python requirements from Docker image.
+    """
     _delete_volumes(PYTHON_REQUIREMENT_VOLUMES.keys())
 
 
-@quickdev.command(help="Revert to original Node packages from Docker image")
+@quickdev.command()
 def npm_restore() -> None:
+    """
+    Revert to original Node packages from Docker image.
+    """
     _delete_volumes(NODE_REQUIREMENT_VOLUMES.keys())
 
 
-@quickdev.command(help="Revert to original built assets from the Docker image")
+@quickdev.command()
 def static_restore() -> None:
+    """
+    Revert to original built assets from the Docker image.
+    """
     _delete_volumes(STATIC_ASSET_VOLUMES.keys())
 
 
 @quickdev.command(
     name="pip-install-mounts",
-    help="Deprecated - use 'tutor dev do pip-install-mounts'",
-    context_settings=dict(ignore_unknown_options=True, allow_extra_args=True)
+    context_settings=dict(ignore_unknown_options=True, allow_extra_args=True),
 )
 def _pip_install_mounts_old() -> None:
-    raise click.ClickException("""\
+    """
+    Deprecated - use 'tutor dev do pip-install-mounts'.
+    """
+    raise click.ClickException(
+        """\
 'tutor quickdev pip-install-mounts -m/--mount ...' is deprecated.
 
 Instead, use the equivalent do-job, like this:
@@ -286,13 +309,15 @@ Instead, use the equivalent do-job, like this:
 
 or this:
 
-  tutor dev do -m /some/package -m /another/package pip-install-mounts""")
+  tutor dev do -m /some/package -m /another/package pip-install-mounts"""
+    )
+
 
 def _delete_volumes(volume_names: t.Iterable[str]) -> None:
     """
     Stop containers & delete one or more named `tutor dev` volumes.
     """
-    import tutor.__about__ as tutor_about
+    import tutor.__about__ as tutor_about  # pylint: disable=import-outside-toplevel
 
     # Bring down all `tutor dev` containers so that we can delete volumes.
     # We must use `down` instead of `stop`, because the latter doesn't bring

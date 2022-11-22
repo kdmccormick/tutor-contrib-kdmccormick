@@ -24,11 +24,11 @@ def _auto_mount_venvs(volumes: List[Tuple[str, str]], name: str):
         if service == "openedx":
             volumes += [
                 ("lms", path),
-                ("cms", path),
-                ("lms-worker", path),
-                ("cms-worker", path),
                 ("lms-job", path),
+                ("lms-worker", path),
+                ("cms", path),
                 ("cms-job", path),
+                ("cms-worker", path),
             ]
         else:
             volumes += [
