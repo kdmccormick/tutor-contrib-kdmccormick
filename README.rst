@@ -19,6 +19,23 @@ Plugin: quickdev
 
 See `the quickdev docs <./quickdev.rst>`_.
 
+Plugin: yamlv1
+******************
+
+Write V1 plugins in YAML! To enable::
+
+    tutor plugins enable yamlv1
+    tutor config save
+
+Plugin example::
+
+    COMING SOON 
+    
+Roadmap
+=======
+
+In development.
+
 Plugin: automountvenvs
 **********************
 
@@ -90,6 +107,9 @@ An experimental way to check how ``tutor config save`` will modify your Tutor en
   # ...
   tutor configdiff
     
+Roadmap
+=======
+
 It doesn't fully work. I'll either improve this or remove it.
 
 License

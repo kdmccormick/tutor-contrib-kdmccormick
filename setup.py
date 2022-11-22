@@ -46,6 +46,7 @@ setup(
             "stopnightly = tutorkdmccormick.stopnightly",
             "quickdev = tutorkdmccormick.quickdev",
             "configdiff = tutorkdmccormick.configdiff",
+            "yamlv1 = tutorkdmccormick.yamlv1",
         ]
     },
     classifiers=[
