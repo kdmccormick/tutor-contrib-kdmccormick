@@ -29,8 +29,10 @@ test_paths+=(
 
 test_mode ( ) {
 	mode="$1"
-	mkdir "$output/$mode"
+	theme="$2"
+	mkdir "$output/${mode}_${theme}"
 	tutor "$mode" start -d lms
+	tutor "$mode" "do" settheme "$theme"
 	for path in "${test_paths[@]}" ; do 
 		outpath="$output/${mode}${path}"
 		mkdir -p "$(dirname "$outpath")"
@@ -40,13 +42,18 @@ test_mode ( ) {
 	tutor "$mode" stop
 }
 
-
+pip install https://github.com/overhangio/tutor-indigo.git
 tutor config save \
 	--set EDX_PLATFORM_REPOSITORY=https://github.com/kdmccormick/edx-platform \
 	--set EDX_PLATFORM_VERSION=kdmccormick/assets-sh
+tutor plugins disable mfe
+tutor plugins enable indigo
+
 tutor images build openedx
 tutor dev dc build lms
-test_mode local
-test_mode dev
+test_mode local default
+test_mode local indigo
+test_mode dev default
+test_mode dev indigo
 #test_mode k8s # TODO
 
